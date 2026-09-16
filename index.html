@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>ParkPoint - Estacionamento Inteligente</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- CABEÇALHO -->
+    <header class="header">
+
+        <div class="logo" onclick="showPage('inicio')">
+            <span class="logo-icon">P</span>
+            <span>Park<span>Point</span></span>
+        </div>
+
+        <nav>
+            <a href="#" data-page="inicio">Início</a>
+            <a href="#" data-page="sobre">Sobre</a>
+            <a href="#" data-page="como-funciona">Como funciona</a>
+            <a href="#" data-page="planos">Planos</a>
+            <a href="#" data-page="contato">Contato</a>
+        </nav>
+
+        <button class="btn-login" onclick="showPage('entrar')">
+            Entrar
+        </button>
+
+    </header>
+
+
+    <main>
+
+        <!-- ================= INÍCIO ================= -->
+
+        <section id="inicio" class="page active">
+
+            <div class="hero">
+
+                <div class="hero-text">
+
+                    <span class="tag">ESTACIONAMENTO INTELIGENTE</span>
+
+                    <h1>
+                        Encontre sua vaga.
+                        <span>Em tempo real.</span>
+                    </h1>
+
+                    <p>
+                        Encontre estacionamentos próximos, veja vagas disponíveis
+                        e reserve seu espaço de forma rápida e prática.
+                    </p>
+
+                    <div class="hero-buttons">
+                        <button class="btn-primary" onclick="showPage('comecar')">
+                            Começar agora →
+                        </button>
+
+                        <button class="btn-secondary" onclick="showPage('saiba-mais')">
+                            Saiba mais
+                        </button>
+                    </div>
+
+                </div>
+
+
+                <!-- ILUSTRAÇÃO -->
+                <div class="parking-card">
+
+                    <div class="map-top">
+                        <span>Mapa de estacionamentos</span>
+                        <span class="online">● Online</span>
+                    </div>
+
+                    <div class="parking-map">
+
+                        <div class="road road-1"></div>
+                        <div class="road road-2"></div>
+
+                        <div class="parking-space space-1">A1</div>
+                        <div class="parking-space space-2">A2</div>
+                        <div class="parking-space space-3 occupied">A3</div>
+                        <div class="parking-space space-4">A4</div>
+
+                        <div class="parking-space space-5">B1</div>
+                        <div class="parking-space space-6">B2</div>
+                        <div class="parking-space space-7">B3</div>
+                        <div class="parking-space space-8 occupied">B4</div>
+
+                        <div class="car">🚙</div>
+
+                    </div>
+
+                    <div class="map-footer">
+                        <span><b class="dot available"></b> Disponível</span>
+                        <span><b class="dot busy"></b> Ocupada</span>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- BENEFÍCIOS -->
+
+            <div class="features">
+
+                <div class="feature">
+                    <div class="feature-icon">📍</div>
+                    <div>
+                        <h3>Encontre perto</h3>
+                        <p>Veja estacionamentos próximos da sua localização.</p>
+                    </div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">⚡</div>
+                    <div>
+                        <h3>Em tempo real</h3>
+                        <p>Consulte a disponibilidade das vagas.</p>
+                    </div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">🔒</div>
+                    <div>
+                        <h3>Reserve sua vaga</h3>
+                        <p>Garanta seu espaço antes de chegar.</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= SOBRE ================= -->
+
+        <section id="sobre" class="page">
+
+            <div class="page-header">
+                <span class="tag">SOBRE A PARKPOINT</span>
+
+                <h1>
+                    Estacionar ficou
+                    <span>mais simples.</span>
+                </h1>
+
+                <p>
+                    A ParkPoint foi criada para facilitar a busca por vagas
+                    de estacionamento e melhorar a experiência dos motoristas.
+                </p>
+            </div>
+
+
+            <div class="info-grid">
+
+                <div class="info-card">
+                    <div class="big-icon">🚗</div>
+                    <h2>Praticidade</h2>
+                    <p>
+                        Encontre uma vaga sem precisar ficar procurando
+                        por estacionamentos pelas ruas.
+                    </p>
+                </div>
+
+                <div class="info-card">
+                    <div class="big-icon">📡</div>
+                    <h2>Informação</h2>
+                    <p>
+                        Tenha acesso às informações de disponibilidade
+                        dos estacionamentos.
+                    </p>
+                </div>
+
+                <div class="info-card">
+                    <div class="big-icon">⏱️</div>
+                    <h2>Economia de tempo</h2>
+                    <p>
+                        Planeje onde estacionar antes mesmo de chegar
+                        ao seu destino.
+                    </p>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= COMO FUNCIONA ================= -->
+
+        <section id="como-funciona" class="page">
+
+            <div class="page-header">
+
+                <span class="tag">COMO FUNCIONA</span>
+
+                <h1>
+                    Estacione em
+                    <span>4 passos.</span>
+                </h1>
+
+                <p>
+                    O processo é simples e rápido.
+                </p>
+
+            </div>
+
+
+            <div class="steps">
+
+                <div class="step">
+                    <div class="step-number">01</div>
+                    <div>
+                        <h2>Informe o destino</h2>
+                        <p>
+                            Digite o local para onde você está indo.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">02</div>
+                    <div>
+                        <h2>Encontre uma vaga</h2>
+                        <p>
+                            Veja os estacionamentos disponíveis próximos.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">03</div>
+                    <div>
+                        <h2>Escolha seu estacionamento</h2>
+                        <p>
+                            Compare distância e disponibilidade.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">04</div>
+                    <div>
+                        <h2>Reserve</h2>
+                        <p>
+                            Reserve sua vaga e vá tranquilo.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= PLANOS ================= -->
+
+        <section id="planos" class="page">
+
+            <div class="page-header">
+
+                <span class="tag">PLANOS</span>
+
+                <h1>
+                    Escolha o plano
+                    <span>ideal.</span>
+                </h1>
+
+                <p>
+                    Soluções para diferentes necessidades.
+                </p>
+
+            </div>
+
+
+            <div class="plans">
+
+                <div class="plan">
+
+                    <h2>Básico</h2>
+
+                    <p class="plan-description">
+                        Para quem estaciona ocasionalmente.
+                    </p>
+
+                    <div class="price">
+                        <strong>Grátis</strong>
+                    </div>
+
+                    <ul>
+                        <li>✓ Busca de estacionamentos</li>
+                        <li>✓ Visualização de vagas</li>
+                        <li>✓ Localização</li>
+                    </ul>
+
+                    <button class="btn-outline" onclick="showPage('comecar')">
+                        Começar
+                    </button>
+
+                </div>
+
+
+                <div class="plan featured">
+
+                    <div class="popular">MAIS UTILIZADO</div>
+
+                    <h2>Plus</h2>
+
+                    <p class="plan-description">
+                        Para quem utiliza com frequência.
+                    </p>
+
+                    <div class="price">
+                        <strong>R$ 19,90</strong>
+                        <small>/mês</small>
+                    </div>
+
+                    <ul>
+                        <li>✓ Todos os recursos Básicos</li>
+                        <li>✓ Reservas antecipadas</li>
+                        <li>✓ Histórico de estacionamento</li>
+                        <li>✓ Suporte prioritário</li>
+                    </ul>
+
+                    <button class="btn-primary full" onclick="showPage('comecar')">
+                        Começar agora
+                    </button>
+
+                </div>
+
+
+                <div class="plan">
+
+                    <h2>Empresarial</h2>
+
+                    <p class="plan-description">
+                        Para empresas e estacionamentos.
+                    </p>
+
+                    <div class="price">
+                        <strong>Personalizado</strong>
+                    </div>
+
+                    <ul>
+                        <li>✓ Gestão de vagas</li>
+                        <li>✓ Painel administrativo</li>
+                        <li>✓ Relatórios</li>
+                        <li>✓ Suporte especializado</li>
+                    </ul>
+
+                    <button class="btn-outline" onclick="showPage('contato')">
+                        Falar conosco
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= CONTATO ================= -->
+
+        <section id="contato" class="page">
+
+            <div class="page-header">
+
+                <span class="tag">CONTATO</span>
+
+                <h1>
+                    Fale com a
+                    <span>ParkPoint.</span>
+                </h1>
+
+                <p>
+                    Tem alguma dúvida? Envie uma mensagem.
+                </p>
+
+            </div>
+
+
+            <div class="contact-container">
+
+                <div class="contact-info">
+
+                    <div class="contact-item">
+                        <span>📧</span>
+                        <div>
+                            <h3>E-mail</h3>
+                            <p>contato@parkpoint.com</p>
+                        </div>
+                    </div>
+
+                    <div class="contact-item">
+                        <span>📱</span>
+                        <div>
+                            <h3>Telefone</h3>
+                            <p>(41) 99999-9999</p>
+                        </div>
+                    </div>
+
+                    <div class="contact-item">
+                        <span>📍</span>
+                        <div>
+                            <h3>Localização</h3>
+                            <p>Curitiba - PR</p>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <form class="contact-form" id="contactForm">
+
+                    <label>Nome</label>
+                    <input type="text" id="contactName" placeholder="Seu nome" required>
+
+                    <label>E-mail</label>
+                    <input type="email" placeholder="seu@email.com" required>
+
+                    <label>Mensagem</label>
+                    <textarea placeholder="Digite sua mensagem..." required></textarea>
+
+                    <button class="btn-primary full" type="submit">
+                        Enviar mensagem
+                    </button>
+
+                </form>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= LOGIN ================= -->
+
+        <section id="entrar" class="page">
+
+            <div class="auth-box">
+
+                <div class="auth-logo">
+                    <span class="logo-icon">P</span>
+                    <strong>ParkPoint</strong>
+                </div>
+
+                <h1>Bem-vindo de volta!</h1>
+
+                <p>Entre na sua conta para continuar.</p>
+
+
+                <form id="loginForm">
+
+                    <label>E-mail</label>
+                    <input
+                        type="email"
+                        id="loginEmail"
+                        placeholder="seu@email.com"
+                        required
+                    >
+
+                    <label>Senha</label>
+                    <input
+                        type="password"
+                        placeholder="Sua senha"
+                        required
+                    >
+
+                    <button class="btn-primary full" type="submit">
+                        Entrar
+                    </button>
+
+                </form>
+
+
+                <p class="auth-bottom">
+                    Ainda não possui uma conta?
+                    <a href="#" onclick="showPage('comecar')">
+                        Comece agora
+                    </a>
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= COMEÇAR ================= -->
+
+        <section id="comecar" class="page">
+
+            <div class="dashboard">
+
+                <div class="dashboard-header">
+
+                    <div>
+                        <span class="tag">PARKPOINT</span>
+                        <h1>Encontre sua vaga</h1>
+                        <p>Onde você deseja estacionar?</p>
+                    </div>
+
+                    <button class="logout" onclick="showPage('inicio')">
+                        Sair
+                    </button>
+
+                </div>
+
+
+                <div class="search-box">
+
+                    <div class="search-input">
+
+                        <span>📍</span>
+
+                        <input
+                            type="text"
+                            id="destination"
+                            placeholder="Digite um endereço ou destino"
+                        >
+
+                    </div>
+
+                    <select id="distance">
+                        <option value="1">Até 1 km</option>
+                        <option value="3">Até 3 km</option>
+                        <option value="5">Até 5 km</option>
+                        <option value="10">Até 10 km</option>
+                    </select>
+
+                    <button class="btn-primary" onclick="searchParking()">
+                        Buscar
+                    </button>
+
+                </div>
+
+
+                <div id="searchMessage"></div>
+
+
+                <div class="parking-results">
+
+                    <h2>Estacionamentos próximos</h2>
+
+
+                    <div class="parking-result">
+
+                        <div class="parking-result-icon">
+                            🅿️
+                        </div>
+
+                        <div class="parking-result-info">
+
+                            <h3>Park Center</h3>
+
+                            <p>📍 350 metros do destino</p>
+
+                            <span class="availability">
+                                ● 18 vagas disponíveis
+                            </span>
+
+                        </div>
+
+                        <div class="parking-result-action">
+
+                            <strong>R$ 8,00/h</strong>
+
+                            <button
+                                class="btn-small"
+                                onclick="reserve('Park Center')"
+                            >
+                                Reservar
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="parking-result">
+
+                        <div class="parking-result-icon">
+                            🅿️
+                        </div>
+
+                        <div class="parking-result-info">
+
+                            <h3>Estacionamento Central</h3>
+
+                            <p>📍 600 metros do destino</p>
+
+                            <span class="availability">
+                                ● 9 vagas disponíveis
+                            </span>
+
+                        </div>
+
+                        <div class="parking-result-action">
+
+                            <strong>R$ 7,00/h</strong>
+
+                            <button
+                                class="btn-small"
+                                onclick="reserve('Estacionamento Central')"
+                            >
+                                Reservar
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="parking-result">
+
+                        <div class="parking-result-icon">
+                            🅿️
+                        </div>
+
+                        <div class="parking-result-info">
+
+                            <h3>Park Shopping</h3>
+
+                            <p>📍 900 metros do destino</p>
+
+                            <span class="availability">
+                                ● 24 vagas disponíveis
+                            </span>
+
+                        </div>
+
+                        <div class="parking-result-action">
+
+                            <strong>R$ 10,00/h</strong>
+
+                            <button
+                                class="btn-small"
+                                onclick="reserve('Park Shopping')"
+                            >
+                                Reservar
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= SAIBA MAIS ================= -->
+
+        <section id="saiba-mais" class="page">
+
+            <div class="page-header">
+
+                <span class="tag">SAIBA MAIS</span>
+
+                <h1>
+                    Tudo para facilitar
+                    <span>seu estacionamento.</span>
+                </h1>
+
+            </div>
+
+
+            <div class="info-grid">
+
+                <div class="info-card">
+                    <div class="big-icon">🗺️</div>
+                    <h2>Mapa inteligente</h2>
+                    <p>
+                        Visualize estacionamentos e vagas disponíveis
+                        de maneira simples.
+                    </p>
+                </div>
+
+                <div class="info-card">
+                    <div class="big-icon">🔔</div>
+                    <h2>Atualizações</h2>
+                    <p>
+                        Consulte a disponibilidade das vagas
+                        de forma rápida.
+                    </p>
+                </div>
+
+                <div class="info-card">
+                    <div class="big-icon">🎯</div>
+                    <h2>Busca eficiente</h2>
+                    <p>
+                        Encontre opções próximas ao seu destino.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <div class="cta">
+
+                <h2>Pronto para encontrar sua vaga?</h2>
+
+                <p>
+                    Comece agora e veja as opções disponíveis.
+                </p>
+
+                <button class="btn-primary" onclick="showPage('comecar')">
+                    Começar agora →
+                </button>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- RODAPÉ -->
+
+    <footer>
+
+        <div class="footer-logo">
+            <span class="logo-icon">P</span>
+            ParkPoint
+        </div>
+
+        <p>
+            © 2026 ParkPoint. Estacionamento inteligente.
+        </p>
+
+        <div>
+            <a href="#" onclick="showPage('sobre')">Sobre</a>
+            <a href="#" onclick="showPage('contato')">Contato</a>
+        </div>
+
+    </footer>
+
+
+    <!-- MODAL -->
+
+    <div id="modal" class="modal">
+
+        <div class="modal-content">
+
+            <button class="modal-close" onclick="closeModal()">×</button>
+
+            <div class="success-icon">✓</div>
+
+            <h2 id="modalTitle">Reserva realizada!</h2>
+
+            <p id="modalMessage">
+                Sua ação foi realizada com sucesso.
+            </p>
+
+            <button class="btn-primary" onclick="closeModal()">
+                Continuar
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <script src="script.js"></script>
+
+</body>
+</html>
