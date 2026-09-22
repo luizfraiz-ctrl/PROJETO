@@ -1,22 +1,16 @@
 <?php
 
 $host = "localhost";
-$porta = "3306";
-$banco = "estacionamento";
 $usuario = "root";
 $senha = "";
+$banco = "estacionamento";
 
-try {
-    $pdo = new PDO(
-        "mysql:host=$host;port=$porta;dbname=$banco;charset=utf8mb4",
-        $usuario,
-        $senha
-    );
+$conn = mysqli_connect($host, $usuario, $senha, $banco);
 
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-
-} catch (PDOException $e) {
-    die("Erro na conexão com o banco: " . $e->getMessage());
+if (!$conn) {
+    die("Erro ao conectar ao banco de dados: " . mysqli_connect_error());
 }
+
+mysqli_set_charset($conn, "utf8");
+
 ?>

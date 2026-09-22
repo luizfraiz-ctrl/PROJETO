@@ -7,13 +7,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Login - Park Point</title>
+    <title>Criar conta - Park Point</title>
 
     <link rel="stylesheet" href="style.css">
 
 </head>
 
 <body>
+
+    <!-- NAVBAR -->
 
     <header class="navbar">
 
@@ -47,6 +49,10 @@
                     Contato
                 </a>
 
+                <a href="login.php" class="btn-login">
+                    Entrar
+                </a>
+
             </nav>
 
         </div>
@@ -54,20 +60,34 @@
     </header>
 
 
+    <!-- CADASTRO -->
+
     <main class="form-page">
 
         <div class="form-box">
 
             <h1>
-                Entrar
+                Criar sua conta
             </h1>
 
             <p>
-                Acesse sua conta do Park Point.
+                Cadastre-se no Park Point para encontrar e reservar sua vaga.
             </p>
 
 
-            <form action="entrar.php" method="POST">
+            <form action="cadastrar.php" method="POST">
+
+                <label>
+                    Nome
+                </label>
+
+                <input
+                    type="text"
+                    name="nome"
+                    placeholder="Digite seu nome"
+                    required
+                >
+
 
                 <label>
                     E-mail
@@ -88,13 +108,13 @@
                 <input
                     type="password"
                     name="senha"
-                    placeholder="Digite sua senha"
+                    placeholder="Crie uma senha"
                     required
                 >
 
 
                 <button type="submit">
-                    Entrar
+                    Criar conta
                 </button>
 
             </form>
@@ -102,13 +122,13 @@
 
             <p style="text-align:center; margin-top:20px;">
 
-                Ainda não tem uma conta?
+                Já possui uma conta?
 
                 <a
-                    href="cadastro.php"
+                    href="login.php"
                     style="color:#2563eb; font-weight:600;"
                 >
-                    Criar conta
+                    Entrar
                 </a>
 
             </p>
