@@ -1,8 +1,6 @@
-```php
 <?php
 
 session_start();
-
 require_once "conexao.php";
 
 if (!isset($_SESSION["usuario_id"])) {
@@ -13,33 +11,53 @@ if (!isset($_SESSION["usuario_id"])) {
 $usuario_id = $_SESSION["usuario_id"];
 $nome = $_SESSION["usuario_nome"];
 
-$sql = "SELECT id, placa, modelo, cor
+// Conta os veículos do usuário
+$sql = "SELECT COUNT(*) AS total
         FROM veiculos
-        WHERE usuario_id = ?
-        ORDER BY id DESC";
+        WHERE usuario_id = ?";
 
 $stmt = mysqli_prepare($conn, $sql);
-
-if (!$stmt) {
-    die("Erro ao buscar veículos: " . mysqli_error($conn));
-}
-
 mysqli_stmt_bind_param($stmt, "i", $usuario_id);
 mysqli_stmt_execute($stmt);
 
 $resultado = mysqli_stmt_get_result($stmt);
+$dados = mysqli_fetch_assoc($resultado);
+
+$total_veiculos = $dados["total"];
+
+mysqli_stmt_close($stmt);
+
+
+// Conta as reservas ativas
+$sql = "SELECT COUNT(*) AS total
+        FROM reservas
+        WHERE usuario_id = ?
+        AND status = 'ativa'";
+
+$stmt = mysqli_prepare($conn, $sql);
+mysqli_stmt_bind_param($stmt, "i", $usuario_id);
+mysqli_stmt_execute($stmt);
+
+$resultado = mysqli_stmt_get_result($stmt);
+$dados = mysqli_fetch_assoc($resultado);
+
+$total_reservas = $dados["total"];
+
+mysqli_stmt_close($stmt);
 
 ?>
 
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 
 <head>
 
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Painel - Park Point</title>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Dashboard - Park Point</title>
 
     <link rel="stylesheet" href="style.css">
 
@@ -47,106 +65,202 @@ $resultado = mysqli_stmt_get_result($stmt);
 
 <body>
 
-    <!-- NAVBAR -->
 
-    <header class="navbar">
+<header class="navbar">
 
-        <div class="navbar-content">
+    <div class="navbar-content">
 
-            <a href="index.php" class="logo">
+        <a href="dashboard.php" class="logo">
 
-                <div class="logo-icon">
-                    P
-                </div>
+            <span class="logo-icon">P</span>
 
-                Park <span>Point</span>
+            Park Point
 
+        </a>
+
+
+        <nav class="nav-menu">
+
+            <a href="dashboard.php">
+                Início
             </a>
 
-            <nav class="nav-menu">
+            <a href="vagas.php">
+                Vagas
+            </a>
 
-                <a href="dashboard.php">
-                    Início
-                </a>
+            <a href="minhas-reservas.php">
+                Minhas Reservas
+            </a>
 
-                <a href="vagas.php">
-                    Vagas
-                </a>
+            <a href="historico.php">
+                Histórico
+            </a>
 
-                <a href="minhas-reservas.php">
-                    Reservas
-                </a>
+            <a href="logout.php" class="btn-login">
+                Sair
+            </a>
 
-                <a href="historico.php">
-                    Histórico
-                </a>
+        </nav>
 
-                <a href="logout.php" class="btn-login">
-                    Sair
-                </a>
+    </div>
 
-            </nav>
-
-        </div>
-
-    </header>
+</header>
 
 
-    <!-- DASHBOARD -->
-
-    <main class="dashboard">
+<main class="dashboard">
 
 
-        <!-- BOAS-VINDAS -->
+    <div class="dashboard-header">
 
-        <section class="dashboard-welcome">
+        <div>
 
             <h1>
-                Olá, <?php echo htmlspecialchars($nome); ?>! 👋
+                Olá, <?= htmlspecialchars($nome) ?>! 👋
             </h1>
 
             <p>
                 Bem-vindo ao seu painel do Park Point.
-                Gerencie seus veículos e encontre sua vaga.
             </p>
 
-        </section>
+        </div>
+
+    </div>
 
 
-        <!-- MENU -->
+    <div class="cards">
 
-        <section class="dashboard-menu">
 
-            <a href="vagas.php">
-                🅿️
-                <br><br>
-                Encontrar vaga
-            </a>
+        <!-- MEUS VEÍCULOS -->
 
-            <a href="cadastro-veiculo.php">
+        <a href="meus-veiculos.php"
+           class="card">
+
+            <div class="card-icon">
                 🚗
-                <br><br>
-                Cadastrar veículo
-            </a>
+            </div>
 
-            <a href="minhas-reservas.php">
+            <h2>
+                Meus Veículos
+            </h2>
+
+            <p>
+                Gerencie seus veículos cadastrados.
+            </p>
+
+            <strong>
+                <?= $total_veiculos ?> veículo(s)
+            </strong>
+
+        </a>
+
+
+        <!-- VAGAS -->
+
+        <a href="vagas.php"
+           class="card">
+
+            <div class="card-icon">
+                🅿️
+            </div>
+
+            <h2>
+                Consultar Vagas
+            </h2>
+
+            <p>
+                Veja as vagas disponíveis e ocupadas.
+            </p>
+
+        </a>
+
+
+        <!-- RESERVAR -->
+
+        <a href="reservar.php"
+           class="card">
+
+            <div class="card-icon">
                 📅
-                <br><br>
-                Minhas reservas
-            </a>
+            </div>
 
-            <a href="historico.php">
+            <h2>
+                Reservar Vaga
+            </h2>
+
+            <p>
+                Escolha uma vaga e faça sua reserva.
+            </p>
+
+        </a>
+
+
+        <!-- MINHAS RESERVAS -->
+
+        <a href="minhas-reservas.php"
+           class="card">
+
+            <div class="card-icon">
+                🎫
+            </div>
+
+            <h2>
+                Minhas Reservas
+            </h2>
+
+            <p>
+                Consulte suas reservas atuais.
+            </p>
+
+            <strong>
+                <?= $total_reservas ?> ativa(s)
+            </strong>
+
+        </a>
+
+
+        <!-- HISTÓRICO -->
+
+        <a href="historico.php"
+           class="card">
+
+            <div class="card-icon">
                 📋
-                <br><br>
+            </div>
+
+            <h2>
                 Histórico
-            </a>
+            </h2>
 
-        </section>
+            <p>
+                Consulte o histórico das suas reservas.
+            </p>
+
+        </a>
 
 
-        <!-- VEÍCULOS -->
+    </div>
 
-        <section>
 
-            <div class="section-title" style="text-align:left; margin-bottom:20px;">
-```
+</main>
+
+
+<footer>
+
+    <p>
+        © 2026 Park Point - Sistema de Gestão de Estacionamento
+    </p>
+
+</footer>
+
+
+</body>
+
+</html>
+
+<?php
+
+mysqli_close($conn);
+
+?>
+

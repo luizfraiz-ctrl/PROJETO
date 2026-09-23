@@ -1,49 +1,63 @@
-```php
 <?php
 
 session_start();
 
 require_once "conexao.php";
 
+/* VERIFICAR LOGIN */
+
 if (!isset($_SESSION["usuario_id"])) {
     header("Location: login.php");
     exit;
 }
 
-if (!isset($_GET["id"])) {
-    die("Vaga não informada.");
+$usuario_id = $_SESSION["usuario_id"];
+
+
+/* VERIFICAR VAGA */
+
+if (!isset($_GET["id"]) || empty($_GET["id"])) {
+    header("Location: vagas.php");
+    exit;
 }
 
-$usuario_id = $_SESSION["usuario_id"];
-$vaga_id = $_GET["id"];
+$vaga_id = (int) $_GET["id"];
 
 
 /* BUSCAR VAGA */
 
-$sql = "SELECT * FROM vagas
-        WHERE id = '$vaga_id'
-        AND status = 'livre'";
+$sql_vaga = "SELECT id, numero, status
+             FROM vagas
+             WHERE id = $vaga_id";
 
-$resultado_vaga = mysqli_query($conn, $sql);
+$resultado_vaga = mysqli_query($conn, $sql_vaga);
 
 if (!$resultado_vaga) {
     die("Erro ao buscar vaga: " . mysqli_error($conn));
 }
 
 if (mysqli_num_rows($resultado_vaga) == 0) {
-    die("Essa vaga não está disponível.");
+    die("Vaga não encontrada.");
 }
 
 $vaga = mysqli_fetch_assoc($resultado_vaga);
 
 
-/* BUSCAR VEÍCULOS */
+/* VERIFICAR SE ESTÁ LIVRE */
 
-$sql = "SELECT * FROM veiculos
-        WHERE usuario_id = '$usuario_id'
-        ORDER BY id DESC";
+if ($vaga["status"] != "livre") {
+    die("Essa vaga não está disponível.");
+}
 
-$resultado_veiculos = mysqli_query($conn, $sql);
+
+/* BUSCAR VEÍCULOS DO USUÁRIO */
+
+$sql_veiculos = "SELECT id, placa, modelo, cor
+                 FROM veiculos
+                 WHERE usuario_id = $usuario_id
+                 ORDER BY id DESC";
+
+$resultado_veiculos = mysqli_query($conn, $sql_veiculos);
 
 if (!$resultado_veiculos) {
     die("Erro ao buscar veículos: " . mysqli_error($conn));
@@ -87,15 +101,25 @@ if (!$resultado_veiculos) {
 
         <nav class="nav-menu">
 
-            <a href="dashboard.php">Início</a>
+            <a href="dashboard.php">
+                Início
+            </a>
 
-            <a href="vagas.php">Vagas</a>
+            <a href="vagas.php">
+                Vagas
+            </a>
 
-            <a href="minhas-reservas.php">Reservas</a>
+            <a href="minhas-reservas.php">
+                Reservas
+            </a>
 
-            <a href="historico.php">Histórico</a>
+            <a href="historico.php">
+                Histórico
+            </a>
 
-            <a href="logout.php" class="btn-login">Sair</a>
+            <a href="logout.php" class="btn-login">
+                Sair
+            </a>
 
         </nav>
 
@@ -104,12 +128,9 @@ if (!$resultado_veiculos) {
 </header>
 
 
-
 <main class="form-page">
 
-
     <div class="form-box">
-
 
         <div class="card-icon">
             🅿️
@@ -127,14 +148,132 @@ if (!$resultado_veiculos) {
         </p>
 
 
-        <?php
+        <?php if (mysqli_num_rows($resultado_veiculos) > 0): ?>
 
-        echo "<p>Veículos encontrados: " . mysqli_num_rows($resultado_veiculos) . "</p>";
 
-if (mysqli_num_rows($resultado_veiculos) > 0) 
+            <form action="confirmar-reserva.php" method="POST">
 
-            ?>
 
-            <form action="confirmar-reserva.php" method="PO
+                <input
+                    type="hidden"
+                    name="vaga_id"
+                    value="<?php echo $vaga["id"]; ?>"
+                >
 
-```
+
+                <label for="veiculo_id">
+                    Escolha seu veículo
+                </label>
+
+
+                <select
+                    name="veiculo_id"
+                    id="veiculo_id"
+                    required
+                >
+
+                    <option value="">
+                        Selecione um veículo
+                    </option>
+
+
+                    <?php while ($veiculo = mysqli_fetch_assoc($resultado_veiculos)): ?>
+
+                        <option value="<?php echo $veiculo["id"]; ?>">
+
+                            <?php echo htmlspecialchars($veiculo["modelo"]); ?>
+
+                            -
+
+                            <?php echo htmlspecialchars($veiculo["placa"]); ?>
+
+                            <?php if (!empty($veiculo["cor"])): ?>
+
+                                -
+                                <?php echo htmlspecialchars($veiculo["cor"]); ?>
+
+                            <?php endif; ?>
+
+                        </option>
+
+                    <?php endwhile; ?>
+
+
+                </select>
+
+
+                <button type="submit">
+                    Confirmar reserva
+                </button>
+
+
+            </form>
+
+
+        <?php else: ?>
+
+
+            <div class="card">
+
+                <div class="card-icon">
+                    🚗
+                </div>
+
+                <h3>
+                    Nenhum veículo cadastrado
+                </h3>
+
+                <p>
+                    Você precisa cadastrar um veículo antes de reservar uma vaga.
+                </p>
+
+                <br>
+
+                <a
+                    href="cadastro-veiculo.php"
+                    class="btn-primary"
+                >
+                    Cadastrar veículo
+                </a>
+
+            </div>
+
+
+        <?php endif; ?>
+
+
+        <p style="text-align:center; margin-top:25px;">
+
+            <a
+                href="vagas.php"
+                style="color:#2563eb; font-weight:600;"
+            >
+                ← Voltar para vagas
+            </a>
+
+        </p>
+
+
+    </div>
+
+</main>
+
+
+<footer>
+
+    <p>
+        © 2026 Park Point — Sistema de Estacionamento
+    </p>
+
+</footer>
+
+
+</body>
+
+</html>
+
+<?php
+
+mysqli_close($conn);
+
+?>

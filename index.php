@@ -3,355 +3,713 @@
 
 <head>
 
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Park Point - Estacionamento inteligente</title>
 
-    <title>Park Point - Estacionamento Inteligente</title>
+<link rel="stylesheet" href="style.css">
 
-    <link rel="stylesheet" href="style.css">
+<style>
+
+.hero {
+    max-width: 1200px;
+    margin: auto;
+    padding: 80px 30px;
+
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    align-items: center;
+    gap: 60px;
+}
+
+.hero-tag {
+    display: inline-block;
+
+    background: #eaf2ff;
+    color: #2563eb;
+
+    padding: 8px 15px;
+
+    border-radius: 20px;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    margin-bottom: 20px;
+}
+
+.hero h1 {
+    font-size: 48px;
+    line-height: 1.15;
+
+    margin-bottom: 20px;
+}
+
+.hero h1 span {
+    color: #2563eb;
+}
+
+.hero p {
+    color: #667085;
+
+    font-size: 16px;
+    line-height: 1.7;
+
+    margin-bottom: 30px;
+
+    max-width: 520px;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.btn-secondary {
+    display: inline-block;
+
+    padding: 12px 22px;
+
+    border-radius: 10px;
+
+    border: 1px solid #d9e0eb;
+
+    color: #374151;
+
+    background: white;
+
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.btn-secondary:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+}
+
+.hero-visual {
+    display: flex;
+    justify-content: center;
+}
+
+.parking-card {
+    background: white;
+
+    width: 100%;
+    max-width: 450px;
+
+    padding: 25px;
+
+    border-radius: 25px;
+
+    box-shadow: 0 20px 50px rgba(37, 99, 235, 0.12);
+
+    border: 1px solid #e8edf5;
+}
+
+.parking-top {
+    display: flex;
+
+    justify-content: space-between;
+    align-items: center;
+
+    margin-bottom: 25px;
+}
+
+.parking-top strong {
+    font-size: 17px;
+}
+
+.available {
+    background: #dcfce7;
+    color: #16a34a;
+
+    padding: 7px 12px;
+
+    border-radius: 20px;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.parking-spaces {
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 15px;
+}
+
+.space {
+    height: 110px;
+
+    border: 2px dashed #d6deeb;
+
+    border-radius: 15px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    position: relative;
+
+    color: #8a94a6;
+
+    font-weight: 600;
+}
+
+.space .car {
+    font-size: 32px;
+}
+
+.home-section {
+    max-width: 1200px;
+
+    margin: auto;
+
+    padding: 80px 30px;
+}
+
+.home-section-title {
+    text-align: center;
+
+    margin-bottom: 45px;
+}
+
+.home-section-title h2 {
+    font-size: 30px;
+
+    margin-bottom: 10px;
+}
+
+.home-section-title p {
+    color: #6b7280;
+}
+
+.home-cards {
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 25px;
+}
+
+.home-card {
+    background: white;
+
+    padding: 30px;
+
+    border-radius: 20px;
+
+    border: 1px solid #e8edf5;
+
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.04);
+
+    text-align: center;
+}
+
+.home-card-icon {
+    width: 55px;
+    height: 55px;
+
+    background: #eaf2ff;
+
+    border-radius: 15px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 25px;
+
+    margin: 0 auto 20px;
+}
+
+.home-card h3 {
+    margin-bottom: 10px;
+}
+
+.home-card p {
+    color: #6b7280;
+
+    font-size: 14px;
+
+    line-height: 1.6;
+}
+
+
+/* CONTATO */
+
+.contact-form-box {
+
+    max-width: 700px;
+
+    margin: auto;
+
+    background: white;
+
+    padding: 35px;
+
+    border-radius: 22px;
+
+    border: 1px solid #e8edf5;
+
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.contact-form-box label {
+    text-align: left;
+}
+
+.contact-form-box input {
+
+    width: 100%;
+}
+
+.contact-form-box textarea {
+
+    width: 100%;
+
+    min-height: 140px;
+
+    padding: 13px 15px;
+
+    border: 1px solid #d9e0eb;
+
+    border-radius: 10px;
+
+    outline: none;
+
+    font-family: inherit;
+
+    font-size: 14px;
+
+    resize: vertical;
+
+    margin-bottom: 20px;
+}
+
+.contact-form-box textarea:focus {
+
+    border-color: #2563eb;
+
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+}
+
+.contact-form-box button {
+
+    width: 100%;
+}
+
+
+/* RESPONSIVO */
+
+@media (max-width: 800px) {
+
+    .hero {
+
+        grid-template-columns: 1fr;
+
+        padding-top: 50px;
+    }
+
+    .hero h1 {
+
+        font-size: 38px;
+    }
+
+    .home-cards {
+
+        grid-template-columns: 1fr;
+    }
+
+}
+
+</style>
 
 </head>
 
+
 <body>
 
-    <!-- NAVBAR -->
 
-    <header class="navbar">
+<!-- NAVBAR -->
 
-        <div class="navbar-content">
+<header class="navbar">
 
-            <a href="index.php" class="logo">
+<div class="navbar-content">
 
-                <div class="logo-icon">
-                    P
-                </div>
+<a href="index.php" class="logo">
 
-                Park <span>Point</span>
+<div class="logo-icon">P</div>
 
-            </a>
+Park <span>Point</span>
 
-            <nav class="nav-menu">
+</a>
 
-                <a href="index.php">
-                    Início
-                </a>
 
-                <a href="#sobre">
-                    Sobre
-                </a>
+<nav class="nav-menu">
 
-                <a href="#como-funciona">
-                    Como funciona
-                </a>
+<a href="index.php">Início</a>
 
-                <a href="#contato">
-                    Contato
-                </a>
+<a href="#sobre">Sobre</a>
 
-                <a href="login.php" class="btn-login">
-                    Entrar
-                </a>
+<a href="#como-funciona">Como funciona</a>
 
-            </nav>
+<a href="#contato">Contato</a>
 
-        </div>
+<a href="login.php" class="btn-login">
+Entrar
+</a>
 
-    </header>
+</nav>
 
+</div>
 
-    <!-- HERO -->
+</header>
 
-    <main>
 
-        <section class="hero">
 
-            <div class="hero-content">
+<!-- HERO -->
 
-                <div class="hero-tag">
-                    🅿️ ESTACIONAMENTO INTELIGENTE
-                </div>
+<section class="hero">
 
-                <h1>
-                    Encontre sua vaga.
-                    <span>Em tempo real.</span>
-                </h1>
+<div>
 
-                <p>
-                    Com o Park Point você encontra, reserva e
-                    acompanha sua vaga de estacionamento de forma
-                    rápida, simples e segura.
-                </p>
+<span class="hero-tag">
+🚗 Estacionamento inteligente
+</span>
 
-                <div class="hero-buttons">
+<h1>
+Encontre sua vaga.
+<span>Em tempo real.</span>
+</h1>
 
-                    <a href="cadastro.php" class="btn-primary">
-                        Começar agora →
-                    </a>
+<p>
+O Park Point facilita sua busca por estacionamento,
+permitindo visualizar vagas disponíveis e realizar
+reservas de forma rápida e prática.
+</p>
 
-                    <a href="#como-funciona" class="btn-secondary">
-                        Como funciona
-                    </a>
+<div class="hero-buttons">
 
-                </div>
+<a href="login.php" class="btn-primary">
+Encontrar minha vaga
+</a>
 
-            </div>
+<a href="cadastro.php" class="btn-secondary">
+Criar minha conta
+</a>
 
+</div>
 
-            <!-- ILUSTRAÇÃO -->
+</div>
 
-            <div class="hero-visual">
 
-                <div class="parking-card">
+<div class="hero-visual">
 
-                    <div class="parking-inner">
+<div class="parking-card">
 
-                        <div class="parking-top">
+<div class="parking-top">
 
-                            <h3>
-                                Vagas disponíveis
-                            </h3>
+<strong>
+Estacionamento
+</strong>
 
-                            <span class="available">
-                                ● Online
-                            </span>
+<span class="available">
+● VAGAS DISPONÍVEIS
+</span>
 
-                        </div>
+</div>
 
 
-                        <div class="parking-spaces">
+<div class="parking-spaces">
 
-                            <div class="space free">
-                                A1<br>LIBRE
-                            </div>
+<div class="space">
+<span>A1</span>
+</div>
 
-                            <div class="space busy">
-                                A2<br>OCUPADA
-                            </div>
+<div class="space">
+<span class="car">🚗</span>
+</div>
 
-                            <div class="space free">
-                                A3<br>LIVRE
-                            </div>
+<div class="space">
+<span>B1</span>
+</div>
 
-                            <div class="space free">
-                                A4<br>LIVRE
-                            </div>
+<div class="space">
+<span class="car">🚙</span>
+</div>
 
-                            <div class="space busy">
-                                B1<br>OCUPADA
-                            </div>
+</div>
 
-                            <div class="space free">
-                                B2<br>LIVRE
-                            </div>
+</div>
 
-                            <div class="space free">
-                                B3<br>LIVRE
-                            </div>
+</div>
 
-                            <div class="space busy">
-                                B4<br>OCUPADA
-                            </div>
+</section>
 
-                        </div>
 
 
-                        <div class="car"></div>
+<!-- SOBRE -->
 
-                    </div>
+<section class="home-section" id="sobre">
 
-                </div>
+<div class="home-section-title">
 
-            </div>
+<h2>
+Sobre o Park Point
+</h2>
 
-        </section>
+<p>
+Uma maneira simples de encontrar e reservar sua vaga.
+</p>
 
+</div>
 
-        <!-- SOBRE -->
 
-        <section class="section" id="sobre">
+<div class="home-cards">
 
-            <div class="section-title">
 
-                <h2>
-                    Estacionar ficou mais fácil
-                </h2>
+<div class="home-card">
 
-                <p>
-                    Tudo o que você precisa em um só lugar.
-                </p>
+<div class="home-card-icon">
+🅿️
+</div>
 
-            </div>
+<h3>
+Vagas em tempo real
+</h3>
 
+<p>
+Consulte quais vagas estão livres ou ocupadas
+antes de chegar ao estacionamento.
+</p>
 
-            <div class="cards">
+</div>
 
-                <div class="card">
 
-                    <div class="card-icon">
-                        📍
-                    </div>
+<div class="home-card">
 
-                    <h3>
-                        Encontre sua vaga
-                    </h3>
+<div class="home-card-icon">
+📅
+</div>
 
-                    <p>
-                        Visualize as vagas disponíveis
-                        antes mesmo de chegar ao estacionamento.
-                    </p>
+<h3>
+Reserva fácil
+</h3>
 
-                </div>
+<p>
+Escolha uma vaga e reserve utilizando um dos
+veículos cadastrados na sua conta.
+</p>
 
+</div>
 
-                <div class="card">
 
-                    <div class="card-icon">
-                        📅
-                    </div>
+<div class="home-card">
 
-                    <h3>
-                        Faça sua reserva
-                    </h3>
+<div class="home-card-icon">
+🔒
+</div>
 
-                    <p>
-                        Escolha seu veículo e reserve
-                        uma vaga disponível de maneira rápida.
-                    </p>
+<h3>
+Tudo organizado
+</h3>
 
-                </div>
+<p>
+Tenha acesso às suas reservas e ao histórico
+sempre que precisar.
+</p>
 
+</div>
 
-                <div class="card">
 
-                    <div class="card-icon">
-                        🚗
-                    </div>
+</div>
 
-                    <h3>
-                        Gerencie seus veículos
-                    </h3>
+</section>
 
-                    <p>
-                        Cadastre seus veículos e mantenha
-                        todas as informações organizadas.
-                    </p>
 
-                </div>
 
-            </div>
+<!-- COMO FUNCIONA -->
 
-        </section>
+<section class="home-section" id="como-funciona">
 
+<div class="home-section-title">
 
-        <!-- COMO FUNCIONA -->
+<h2>
+Como funciona?
+</h2>
 
-        <section class="section" id="como-funciona">
+<p>
+Reserve sua vaga em poucos passos.
+</p>
 
-            <div class="section-title">
+</div>
 
-                <h2>
-                    Como funciona?
-                </h2>
 
-                <p>
-                    É simples utilizar o Park Point.
-                </p>
+<div class="home-cards">
 
-            </div>
 
+<div class="home-card">
 
-            <div class="cards">
+<div class="home-card-icon">
+1️⃣
+</div>
 
-                <div class="card">
+<h3>
+Crie sua conta
+</h3>
 
-                    <div class="card-icon">
-                        1
-                    </div>
+<p>
+Faça seu cadastro gratuitamente no Park Point.
+</p>
 
-                    <h3>
-                        Crie sua conta
-                    </h3>
+</div>
 
-                    <p>
-                        Cadastre seus dados para acessar
-                        o sistema.
-                    </p>
 
-                </div>
+<div class="home-card">
 
+<div class="home-card-icon">
+2️⃣
+</div>
 
-                <div class="card">
+<h3>
+Cadastre seu veículo
+</h3>
 
-                    <div class="card-icon">
-                        2
-                    </div>
+<p>
+Informe a placa, modelo e cor do seu veículo.
+</p>
 
-                    <h3>
-                        Cadastre seu veículo
-                    </h3>
+</div>
 
-                    <p>
-                        Informe a placa, modelo e cor
-                        do seu veículo.
-                    </p>
 
-                </div>
+<div class="home-card">
 
+<div class="home-card-icon">
+3️⃣
+</div>
 
-                <div class="card">
+<h3>
+Reserve sua vaga
+</h3>
 
-                    <div class="card-icon">
-                        3
-                    </div>
+<p>
+Escolha uma vaga livre e confirme sua reserva.
+</p>
 
-                    <h3>
-                        Reserve sua vaga
-                    </h3>
+</div>
 
-                    <p>
-                        Escolha uma vaga livre e confirme
-                        sua reserva.
-                    </p>
 
-                </div>
+</div>
 
-            </div>
+</section>
 
-        </section>
 
 
-        <!-- CONTATO -->
+<!-- CONTATO -->
 
-        <section class="section" id="contato">
+<section class="home-section" id="contato">
 
-            <div class="section-title">
+<div class="home-section-title">
 
-                <h2>
-                    Park Point
-                </h2>
+<h2>
+Entre em contato conosco
+</h2>
 
-                <p>
-                    Estacione de forma inteligente,
-                    rápida e segura.
-                </p>
+<p>
+Tem alguma dúvida ou precisa de ajuda?
+Fale com a equipe do Park Point.
+</p>
 
-            </div>
+</div>
 
-        </section>
 
-    </main>
+<div class="contact-form-box">
 
+<form action="enviar-contato.php" method="POST">
 
-    <!-- FOOTER -->
 
-    <footer>
+<label for="nome">
+Nome
+</label>
 
-        <p>
-            © 2026 Park Point — Sistema de Estacionamento
-        </p>
+<input
+type="text"
+id="nome"
+name="nome"
+placeholder="Digite seu nome"
+required
+>
 
-    </footer>
+
+<label for="email">
+E-mail
+</label>
+
+<input
+type="email"
+id="email"
+name="email"
+placeholder="Digite seu e-mail"
+required
+>
+
+
+<label for="assunto">
+Assunto
+</label>
+
+<input
+type="text"
+id="assunto"
+name="assunto"
+placeholder="Qual é o assunto?"
+required
+>
+
+
+<label for="mensagem">
+Mensagem
+</label>
+
+<textarea
+id="mensagem"
+name="mensagem"
+placeholder="Digite sua mensagem..."
+required
+></textarea>
+
+
+<button type="submit">
+Enviar mensagem
+</button>
+
+
+</form>
+
+</div>
+
+</section>
+
+
+
+<!-- RODAPÉ -->
+
+<footer>
+
+<p>
+© 2026 Park Point — Sistema de Estacionamento
+</p>
+
+</footer>
+
 
 </body>
 

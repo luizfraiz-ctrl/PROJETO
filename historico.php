@@ -17,7 +17,8 @@ $sql = "SELECT
             reservas.status,
             vagas.numero AS vaga,
             veiculos.placa,
-            veiculos.modelo
+            veiculos.modelo,
+            veiculos.cor
         FROM reservas
         INNER JOIN vagas
             ON reservas.vaga_id = vagas.id
@@ -38,68 +39,206 @@ if (!$resultado) {
 <html lang="pt-br">
 
 <head>
+
     <meta charset="UTF-8">
-    <title>Histórico</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Histórico - Park Point</title>
+
     <link rel="stylesheet" href="style.css">
+
 </head>
 
 <body>
 
-    <h1>Histórico de Reservas</h1>
 
-    <p>
-        <a href="dashboard.php">← Voltar para o painel</a>
-    </p>
+<header class="navbar">
 
-    <hr>
+    <div class="navbar-content">
+
+        <a href="dashboard.php" class="logo">
+
+            <div class="logo-icon">
+                P
+            </div>
+
+            Park <span>Point</span>
+
+        </a>
+
+
+        <nav class="nav-menu">
+
+            <a href="dashboard.php">
+                Início
+            </a>
+
+            <a href="vagas.php">
+                Vagas
+            </a>
+
+            <a href="minhas-reservas.php">
+                Reservas
+            </a>
+
+            <a href="historico.php">
+                Histórico
+            </a>
+
+            <a href="logout.php" class="btn-login">
+                Sair
+            </a>
+
+        </nav>
+
+    </div>
+
+</header>
+
+
+<main class="dashboard">
+
+
+    <section class="dashboard-welcome">
+
+        <h1>
+            Histórico de reservas
+        </h1>
+
+        <p>
+            Consulte todas as suas reservas realizadas no Park Point.
+        </p>
+
+    </section>
+
 
     <?php if (mysqli_num_rows($resultado) > 0): ?>
 
-        <table border="1" cellpadding="10">
 
-            <tr>
-                <th>Vaga</th>
-                <th>Veículo</th>
-                <th>Placa</th>
-                <th>Data</th>
-                <th>Status</th>
-            </tr>
+        <div class="cards">
+
 
             <?php while ($reserva = mysqli_fetch_assoc($resultado)): ?>
 
-                <tr>
 
-                    <td>
+                <div class="card">
+
+
+                    <div class="card-icon">
+                        📋
+                    </div>
+
+
+                    <h3>
                         Vaga <?php echo $reserva["vaga"]; ?>
-                    </td>
+                    </h3>
 
-                    <td>
+
+                    <p>
+                        <strong>Veículo:</strong>
                         <?php echo htmlspecialchars($reserva["modelo"]); ?>
-                    </td>
+                    </p>
 
-                    <td>
+
+                    <p>
+                        <strong>Placa:</strong>
                         <?php echo htmlspecialchars($reserva["placa"]); ?>
-                    </td>
+                    </p>
 
-                    <td>
-                        <?php echo $reserva["data_reserva"]; ?>
-                    </td>
 
-                    <td>
-                        <?php echo htmlspecialchars($reserva["status"]); ?>
-                    </td>
+                    <?php if (!empty($reserva["cor"])): ?>
 
-                </tr>
+                        <p>
+                            <strong>Cor:</strong>
+                            <?php echo htmlspecialchars($reserva["cor"]); ?>
+                        </p>
+
+                    <?php endif; ?>
+
+
+                    <p>
+                        <strong>Data:</strong>
+                        <?php echo date("d/m/Y H:i", strtotime($reserva["data_reserva"])); ?>
+                    </p>
+
+
+                    <p>
+
+                        <strong>Status:</strong>
+
+                        <?php if ($reserva["status"] == "ativa"): ?>
+
+                            <span style="color:#16a34a; font-weight:700;">
+                                ● ATIVA
+                            </span>
+
+                        <?php else: ?>
+
+                            <span style="color:#dc2626; font-weight:700;">
+                                ● CANCELADA
+                            </span>
+
+                        <?php endif; ?>
+
+                    </p>
+
+
+                </div>
+
 
             <?php endwhile; ?>
 
-        </table>
+
+        </div>
+
 
     <?php else: ?>
 
-        <p>Nenhum registro encontrado.</p>
+
+        <div
+            class="card"
+            style="text-align:center; max-width:600px; margin:auto;"
+        >
+
+            <div
+                class="card-icon"
+                style="margin-left:auto; margin-right:auto;"
+            >
+                📋
+            </div>
+
+            <h3>
+                Histórico vazio
+            </h3>
+
+            <p>
+                Você ainda não possui reservas registradas.
+            </p>
+
+            <br>
+
+            <a href="vagas.php" class="btn-primary">
+                Encontrar uma vaga
+            </a>
+
+        </div>
+
 
     <?php endif; ?>
+
+
+</main>
+
+
+<footer>
+
+    <p>
+        © 2026 Park Point — Sistema de Estacionamento
+    </p>
+
+</footer>
+
 
 </body>
 

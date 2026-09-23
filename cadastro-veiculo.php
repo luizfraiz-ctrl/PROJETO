@@ -1,4 +1,3 @@
-```php
 <?php
 
 session_start();
@@ -16,6 +15,7 @@ if (!isset($_SESSION["usuario_id"])) {
 <head>
 
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Cadastrar veículo - Park Point</title>
@@ -26,141 +26,154 @@ if (!isset($_SESSION["usuario_id"])) {
 
 <body>
 
-    <!-- NAVBAR -->
 
-    <header class="navbar">
+<header class="navbar">
 
-        <div class="navbar-content">
+    <div class="navbar-content">
 
-            <a href="dashboard.php" class="logo">
+        <a href="dashboard.php" class="logo">
 
-                <div class="logo-icon">
-                    P
-                </div>
-
-                Park <span>Point</span>
-
-            </a>
-
-            <nav class="nav-menu">
-
-                <a href="dashboard.php">
-                    Início
-                </a>
-
-                <a href="vagas.php">
-                    Vagas
-                </a>
-
-                <a href="minhas-reservas.php">
-                    Reservas
-                </a>
-
-                <a href="historico.php">
-                    Histórico
-                </a>
-
-                <a href="logout.php" class="btn-login">
-                    Sair
-                </a>
-
-            </nav>
-
-        </div>
-
-    </header>
-
-
-    <!-- FORMULÁRIO -->
-
-    <main class="form-page">
-
-        <div class="form-box">
-
-            <div class="card-icon">
-                🚗
+            <div class="logo-icon">
+                P
             </div>
 
-            <h1>
-                Cadastrar veículo
-            </h1>
+            Park <span>Point</span>
 
-            <p>
-                Adicione seu veículo para poder realizar reservas no Park Point.
-            </p>
+        </a>
 
 
-            <form action="cadastrar-veiculo.php" method="POST">
+        <nav class="nav-menu">
+
+            <a href="dashboard.php">
+                Início
+            </a>
+
+            <a href="vagas.php">
+                Vagas
+            </a>
+
+            <a href="minhas-reservas.php">
+                Reservas
+            </a>
+
+            <a href="historico.php">
+                Histórico
+            </a>
+
+            <a href="logout.php" class="btn-login">
+                Sair
+            </a>
+
+        </nav>
+
+    </div>
+
+</header>
 
 
-                <label>
-                    Placa
-                </label>
-
-                <input
-                    type="text"
-                    name="placa"
-                    maxlength="10"
-                    placeholder="Ex.: ABC1D23"
-                    required
-                >
+<main class="form-page">
 
 
-                <label>
-                    Modelo
-                </label>
-
-                <input
-                    type="text"
-                    name="modelo"
-                    placeholder="Ex.: Honda Civic"
-                    required
-                >
+    <div class="form-box">
 
 
-                <label>
-                    Cor
-                </label>
-
-                <input
-                    type="text"
-                    name="cor"
-                    placeholder="Ex.: Preto"
-                >
-
-
-                <button type="submit">
-                    Cadastrar veículo
-                </button>
-
-            </form>
-
-
-            <p style="text-align:center; margin-top:20px;">
-
-                <a
-                    href="dashboard.php"
-                    style="color:#2563eb; font-weight:600;"
-                >
-                    ← Voltar para o painel
-                </a>
-
-            </p>
-
+        <div
+            class="card-icon"
+            style="margin-left:auto; margin-right:auto;"
+        >
+            🚗
         </div>
 
-    </main>
 
+        <h1>
+            Cadastrar veículo
+        </h1>
 
-    <footer>
 
         <p>
-            © 2026 Park Point — Sistema de Estacionamento
+            Adicione um veículo à sua conta do Park Point.
         </p>
 
-    </footer>
+
+        <form action="cadastrar-veiculo.php" method="POST">
+
+
+            <label for="placa">
+                Placa
+            </label>
+
+            <input
+                type="text"
+                id="placa"
+                name="placa"
+                placeholder="Ex: ABC1D23"
+                maxlength="10"
+                required
+            >
+
+
+            <label for="modelo">
+                Modelo
+            </label>
+
+            <input
+                type="text"
+                id="modelo"
+                name="modelo"
+                placeholder="Ex: Honda Civic"
+                maxlength="100"
+                required
+            >
+
+
+            <label for="cor">
+                Cor
+            </label>
+
+            <input
+                type="text"
+                id="cor"
+                name="cor"
+                placeholder="Ex: Preto"
+                maxlength="50"
+            >
+
+
+            <button type="submit">
+                Cadastrar veículo
+            </button>
+
+
+        </form>
+
+
+        <p style="margin-top:25px;">
+
+            <a
+                href="dashboard.php"
+                style="color:#2563eb; font-weight:600;"
+            >
+                ← Voltar para o painel
+            </a>
+
+        </p>
+
+
+    </div>
+
+
+</main>
+
+
+<footer>
+
+    <p>
+        © 2026 Park Point — Sistema de Estacionamento
+    </p>
+
+</footer>
+
 
 </body>
 
 </html>
-```

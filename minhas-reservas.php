@@ -17,7 +17,8 @@ $sql = "SELECT
             reservas.status,
             vagas.numero AS vaga,
             veiculos.placa,
-            veiculos.modelo
+            veiculos.modelo,
+            veiculos.cor
         FROM reservas
         INNER JOIN vagas
             ON reservas.vaga_id = vagas.id
@@ -38,84 +39,215 @@ if (!$resultado) {
 <html lang="pt-br">
 
 <head>
+
     <meta charset="UTF-8">
 
-    <title>Minhas Reservas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Minhas Reservas - Park Point</title>
+
     <link rel="stylesheet" href="style.css">
+
 </head>
 
 <body>
 
-    <h1>Minhas Reservas</h1>
 
-    <p>
-        <a href="dashboard.php">← Voltar para o painel</a>
-    </p>
+<header class="navbar">
 
-    <hr>
+    <div class="navbar-content">
 
-    <?php if (mysqli_num_rows($resultado) > 0): ?>
+        <a href="dashboard.php" class="logo">
 
-        <table border="1" cellpadding="10">
+            <div class="logo-icon">
+                P
+            </div>
 
-            <tr>
-                <th>Vaga</th>
-                <th>Veículo</th>
-                <th>Placa</th>
-                <th>Data</th>
-                <th>Status</th>
-            </tr>
-
-            <?php while ($reserva = mysqli_fetch_assoc($resultado)): ?>
-
-                <tr>
-
-                    <td>
-                        Vaga <?php echo $reserva["vaga"]; ?>
-                    </td>
-
-                    <td>
-                        <?php echo htmlspecialchars($reserva["modelo"]); ?>
-                    </td>
-
-                    <td>
-                        <?php echo htmlspecialchars($reserva["placa"]); ?>
-                    </td>
-
-                    <td>
-                        <?php echo $reserva["data_reserva"]; ?>
-                    </td>
-
-                   <td>
-
-    <?php echo htmlspecialchars($reserva["status"]); ?>
-
-    <?php if ($reserva["status"] == "ativa"): ?>
-
-        <br><br>
-
-        <a href="cancelar-reserva.php?id=<?php echo $reserva["id"]; ?>"
-           onclick="return confirm('Tem certeza que deseja cancelar esta reserva?');">
-
-            Cancelar reserva
+            Park <span>Point</span>
 
         </a>
 
-    <?php endif; ?>
 
-</td>
+        <nav class="nav-menu">
 
-                </tr>
+            <a href="dashboard.php">
+                Início
+            </a>
+
+            <a href="vagas.php">
+                Vagas
+            </a>
+
+            <a href="minhas-reservas.php">
+                Reservas
+            </a>
+
+            <a href="historico.php">
+                Histórico
+            </a>
+
+            <a href="logout.php" class="btn-login">
+                Sair
+            </a>
+
+        </nav>
+
+    </div>
+
+</header>
+
+
+<main class="dashboard">
+
+
+    <section class="dashboard-welcome">
+
+        <h1>
+            Minhas reservas
+        </h1>
+
+        <p>
+            Confira suas reservas de estacionamento.
+        </p>
+
+    </section>
+
+
+    <?php if (mysqli_num_rows($resultado) > 0): ?>
+
+
+        <div class="cards">
+
+
+            <?php while ($reserva = mysqli_fetch_assoc($resultado)): ?>
+
+
+                <div class="card">
+
+
+                    <div class="card-icon">
+                        🅿️
+                    </div>
+
+
+                    <h3>
+                        Vaga <?php echo $reserva["vaga"]; ?>
+                    </h3>
+
+
+                    <p>
+                        <strong>Veículo:</strong>
+                        <?php echo htmlspecialchars($reserva["modelo"]); ?>
+                    </p>
+
+
+                    <p>
+                        <strong>Placa:</strong>
+                        <?php echo htmlspecialchars($reserva["placa"]); ?>
+                    </p>
+
+
+                    <?php if (!empty($reserva["cor"])): ?>
+
+                        <p>
+                            <strong>Cor:</strong>
+                            <?php echo htmlspecialchars($reserva["cor"]); ?>
+                        </p>
+
+                    <?php endif; ?>
+
+
+                    <p>
+                        <strong>Data:</strong>
+                        <?php echo date("d/m/Y H:i", strtotime($reserva["data_reserva"])); ?>
+                    </p>
+
+
+                    <p>
+
+                        <strong>Status:</strong>
+
+                        <?php if ($reserva["status"] == "ativa"): ?>
+
+                            <span style="color:#16a34a; font-weight:700;">
+                                ● ATIVA
+                            </span>
+
+                        <?php else: ?>
+
+                            <span style="color:#dc2626; font-weight:700;">
+                                ● CANCELADA
+                            </span>
+
+                        <?php endif; ?>
+
+                    </p>
+
+
+                    <?php if ($reserva["status"] == "ativa"): ?>
+
+                        <br>
+
+                        <a
+                            href="cancelar-reserva.php?id=<?php echo $reserva["id"]; ?>"
+                            class="btn-primary"
+                            onclick="return confirm('Tem certeza que deseja cancelar esta reserva?');"
+                        >
+                            Cancelar reserva
+                        </a>
+
+                    <?php endif; ?>
+
+
+                </div>
+
 
             <?php endwhile; ?>
 
-        </table>
+
+        </div>
+
 
     <?php else: ?>
 
-        <p>Você ainda não possui reservas.</p>
+
+        <div class="card" style="text-align:center; max-width:600px; margin:auto;">
+
+            <div class="card-icon" style="margin-left:auto; margin-right:auto;">
+                📅
+            </div>
+
+            <h3>
+                Nenhuma reserva encontrada
+            </h3>
+
+            <p>
+                Você ainda não possui reservas.
+            </p>
+
+            <br>
+
+            <a href="vagas.php" class="btn-primary">
+                Encontrar uma vaga
+            </a>
+
+        </div>
+
 
     <?php endif; ?>
+
+
+</main>
+
+
+<footer>
+
+    <p>
+        © 2026 Park Point — Sistema de Estacionamento
+    </p>
+
+</footer>
+
 
 </body>
 

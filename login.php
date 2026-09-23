@@ -1,13 +1,13 @@
-```php
 <!DOCTYPE html>
 <html lang="pt-br">
 
 <head>
 
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Login - Park Point</title>
+    <title>Entrar - Park Point</title>
 
     <link rel="stylesheet" href="style.css">
 
@@ -15,118 +15,141 @@
 
 <body>
 
-    <header class="navbar">
 
-        <div class="navbar-content">
+<header class="navbar">
 
-            <a href="index.php" class="logo">
+    <div class="navbar-content">
 
-                <div class="logo-icon">
-                    P
-                </div>
+        <a href="index.php" class="logo">
 
-                Park <span>Point</span>
+            <div class="logo-icon">
+                P
+            </div>
 
+            Park <span>Point</span>
+
+        </a>
+
+
+        <nav class="nav-menu">
+
+            <a href="index.php">
+                Início
             </a>
 
-            <nav class="nav-menu">
+            <a href="index.php#sobre">
+                Sobre
+            </a>
 
-                <a href="index.php">
-                    Início
-                </a>
+            <a href="index.php#como-funciona">
+                Como funciona
+            </a>
 
-                <a href="index.php#sobre">
-                    Sobre
-                </a>
+            <a href="index.php#contato">
+                Contato
+            </a>
 
-                <a href="index.php#como-funciona">
-                    Como funciona
-                </a>
+            <a href="cadastro.php" class="btn-login">
+                Criar conta
+            </a>
 
-                <a href="index.php#contato">
-                    Contato
-                </a>
+        </nav>
 
-            </nav>
+    </div>
 
+</header>
+
+
+<main class="auth-page">
+
+
+    <div class="auth-box">
+
+
+        <div
+            class="card-icon"
+            style="margin-left:auto; margin-right:auto;"
+        >
+            🔐
         </div>
 
-    </header>
 
+        <h1>
+            Bem-vindo de volta!
+        </h1>
 
-    <main class="form-page">
-
-        <div class="form-box">
-
-            <h1>
-                Entrar
-            </h1>
-
-            <p>
-                Acesse sua conta do Park Point.
-            </p>
-
-
-            <form action="entrar.php" method="POST">
-
-                <label>
-                    E-mail
-                </label>
-
-                <input
-                    type="email"
-                    name="email"
-                    placeholder="Digite seu e-mail"
-                    required
-                >
-
-
-                <label>
-                    Senha
-                </label>
-
-                <input
-                    type="password"
-                    name="senha"
-                    placeholder="Digite sua senha"
-                    required
-                >
-
-
-                <button type="submit">
-                    Entrar
-                </button>
-
-            </form>
-
-
-            <p style="text-align:center; margin-top:20px;">
-
-                Ainda não tem uma conta?
-
-                <a
-                    href="cadastro.php"
-                    style="color:#2563eb; font-weight:600;"
-                >
-                    Criar conta
-                </a>
-
-            </p>
-
-        </div>
-
-    </main>
-
-
-    <footer>
 
         <p>
-            © 2026 Park Point — Sistema de Estacionamento
+            Entre na sua conta do Park Point.
         </p>
 
-    </footer>
+
+        <form action="entrar.php" method="POST">
+
+
+            <label for="email">
+                E-mail
+            </label>
+
+            <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="Digite seu e-mail"
+                required
+            >
+
+
+            <label for="senha">
+                Senha
+            </label>
+
+            <input
+                type="password"
+                id="senha"
+                name="senha"
+                placeholder="Digite sua senha"
+                required
+            >
+
+
+            <button type="submit">
+                Entrar
+            </button>
+
+
+        </form>
+
+
+        <p style="margin-top:25px;">
+
+            Ainda não possui uma conta?
+
+            <a
+                href="cadastro.php"
+                style="color:#2563eb; font-weight:600;"
+            >
+                Cadastre-se
+            </a>
+
+        </p>
+
+
+    </div>
+
+
+</main>
+
+
+<footer>
+
+    <p>
+        © 2026 Park Point — Sistema de Estacionamento
+    </p>
+
+</footer>
+
 
 </body>
 
 </html>
-```
