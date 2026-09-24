@@ -2,80 +2,58 @@
 
 require_once "conexao.php";
 
-if ($_SERVER["REQUEST_METHOD"] !== "POST") {
-    header("Location: cadastro.php");
-    exit;
-}
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-$nome = trim($_POST["nome"] ?? "");
-$email = trim($_POST["email"] ?? "");
-$senha = $_POST["senha"] ?? "";
+    $nome = trim($_POST["nome"] ?? "");
+    $email = trim($_POST["email"] ?? "");
+    $senha = $_POST["senha"] ?? "";
 
-if ($nome === "" || $email === "" || $senha === "") {
-    die("Preencha todos os campos.");
-}
+    if ($nome === "" || $email === "" || $senha === "") {
+        die("Preencha todos os campos.");
+    }
 
-// Verifica se o e-mail já existe
-$sql = "SELECT id FROM usuarios WHERE email = ?";
+    try {
 
-$stmt = mysqli_prepare($conn, $sql);
+        // Verifica se o e-mail já existe
+        $verificar = $pdo->prepare(
+            "SELECT id FROM usuarios WHERE email = ?"
+        );
 
-if (!$stmt) {
-    die("Erro ao verificar usuário: " . mysqli_error($conn));
-}
+        $verificar->execute([$email]);
 
-mysqli_stmt_bind_param($stmt, "s", $email);
-mysqli_stmt_execute($stmt);
+        if ($verificar->fetch()) {
+            die("Este e-mail já está cadastrado.");
+        }
 
-$resultado = mysqli_stmt_get_result($stmt);
+        // Criptografa a senha
+        $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
 
-if (mysqli_num_rows($resultado) > 0) {
+        // Cadastra o usuário
+        $sql = "INSERT INTO usuarios (nome, email, senha)
+                VALUES (?, ?, ?)";
 
-    mysqli_stmt_close($stmt);
+        $stmt = $pdo->prepare($sql);
 
-    echo "<h2>Este e-mail já está cadastrado.</h2>";
-    echo "<a href='cadastro.php'>Voltar para o cadastro</a>";
+        $stmt->execute([
+            $nome,
+            $email,
+            $senha_hash
+        ]);
 
-    exit;
-}
+        echo "Cadastro realizado com sucesso!<br><br>";
 
-mysqli_stmt_close($stmt);
+        echo '<a href="login.php">Clique aqui para entrar</a>';
 
-// Cria a senha criptografada
-$senha_hash = password_hash($senha, PASSWORD_DEFAULT);
+    } catch (PDOException $e) {
 
-// Cadastra o usuário
-$sql = "INSERT INTO usuarios (nome, email, senha)
-        VALUES (?, ?, ?)";
+        die("Erro ao cadastrar: " . $e->getMessage());
 
-$stmt = mysqli_prepare($conn, $sql);
-
-if (!$stmt) {
-    die("Erro ao preparar cadastro: " . mysqli_error($conn));
-}
-
-mysqli_stmt_bind_param(
-    $stmt,
-    "sss",
-    $nome,
-    $email,
-    $senha_hash
-);
-
-if (mysqli_stmt_execute($stmt)) {
-
-    echo "<h2>Cadastro realizado com sucesso!</h2>";
-    echo "<p>Usuário: " . htmlspecialchars($nome) . "</p>";
-    echo "<a href='login.php'>Ir para o login</a>";
+    }
 
 } else {
 
-    echo "<h2>Não foi possível realizar o cadastro.</h2>";
-    echo "<p>Erro: " . htmlspecialchars(mysqli_stmt_error($stmt)) . "</p>";
-    echo "<a href='cadastro.php'>Voltar</a>";
+    header("Location: cadastro.php");
+    exit;
+
 }
-
-mysqli_stmt_close($stmt);
-mysqli_close($conn);
-
 ?>

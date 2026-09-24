@@ -1,16 +1,30 @@
 <?php
 
 $host = "localhost";
-$usuario = "root";
-$senha = "";
-$banco = "estacionamento";
+$dbname = "estacionamento_novo";
+$user = "root";
+$pass = "";
 
-$conn = mysqli_connect($host, $usuario, $senha, $banco);
+try {
 
-if (!$conn) {
-    die("Erro ao conectar ao banco de dados: " . mysqli_connect_error());
+    $pdo = new PDO(
+        "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+        $user,
+        $pass
+    );
+
+    $pdo->setAttribute(
+        PDO::ATTR_ERRMODE,
+        PDO::ERRMODE_EXCEPTION
+    );
+
+} catch (PDOException $e) {
+
+    die(
+        "Erro na conexão com o banco: " .
+        htmlspecialchars($e->getMessage())
+    );
+
 }
-
-mysqli_set_charset($conn, "utf8");
 
 ?>

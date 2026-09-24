@@ -10,727 +10,527 @@ if (!isset($_SESSION["usuario_id"])) {
 
 $usuario_id = (int) $_SESSION["usuario_id"];
 
-if (!isset($_POST["vaga_id"]) || !isset($_POST["veiculo_id"])) {
-    die("Dados da reserva não foram enviados.");
+if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+    header("Location: vagas.php");
+    exit;
 }
 
-$vaga_id = (int) $_POST["vaga_id"];
-$veiculo_id = (int) $_POST["veiculo_id"];
-
-if ($vaga_id <= 0 || $veiculo_id <= 0) {
-    die("Dados de reserva inválidos.");
-}
-
-
-/*
-=====================================================
-INICIAR TRANSAÇÃO
-=====================================================
-*/
-
-mysqli_begin_transaction($conn);
-
-try {
-
-    /*
-    =====================================================
-    VERIFICAR SE O VEÍCULO PERTENCE AO USUÁRIO
-    =====================================================
-    */
-
-    $sql = "SELECT id
-            FROM veiculos
-            WHERE id = ?
-            AND usuario_id = ?";
-
-    $stmt = mysqli_prepare($conn, $sql);
-
-    if (!$stmt) {
-        throw new Exception("Erro ao preparar verificação do veículo.");
-    }
-
-    mysqli_stmt_bind_param(
-        $stmt,
-        "ii",
-        $veiculo_id,
-        $usuario_id
-    );
-
-    mysqli_stmt_execute($stmt);
-
-    $resultado = mysqli_stmt_get_result($stmt);
-
-    if (mysqli_num_rows($resultado) === 0) {
-
-        mysqli_stmt_close($stmt);
-
-        throw new Exception(
-            "Esse veículo não pertence ao usuário."
-        );
-    }
-
-    mysqli_stmt_close($stmt);
-
-
-    /*
-    =====================================================
-    VERIFICAR RESERVA ATIVA DO VEÍCULO
-    =====================================================
-    */
-
-    $sql = "SELECT id
-            FROM reservas
-            WHERE veiculo_id = ?
-            AND usuario_id = ?
-            AND status = 'ativa'
-            LIMIT 1";
-
-    $stmt = mysqli_prepare($conn, $sql);
-
-    if (!$stmt) {
-        throw new Exception(
-            "Erro ao verificar reserva existente."
-        );
-    }
-
-    mysqli_stmt_bind_param(
-        $stmt,
-        "ii",
-        $veiculo_id,
-        $usuario_id
-    );
-
-    mysqli_stmt_execute($stmt);
-
-    $resultado = mysqli_stmt_get_result($stmt);
-
-    if (mysqli_num_rows($resultado) > 0) {
-
-        mysqli_stmt_close($stmt);
-
-        mysqli_rollback($conn);
-
-        mysqli_close($conn);
-
-        ?>
-
-        <!DOCTYPE html>
-
-        <html lang="pt-BR">
-
-        <head>
-
-            <meta charset="UTF-8">
-
-            <meta
-                name="viewport"
-                content="width=device-width, initial-scale=1.0"
-            >
-
-            <title>
-                Reserva não permitida - Park Point
-            </title>
-
-            <link
-                rel="stylesheet"
-                href="style.css"
-            >
-
-            <style>
-
-                .erro-page {
-                    min-height: calc(100vh - 150px);
-
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-
-                    padding: 50px 20px;
-                }
-
-                .erro-box {
-                    width: 100%;
-                    max-width: 520px;
-
-                    background: white;
-
-                    padding: 45px 35px;
-
-                    border-radius: 22px;
-
-                    border: 1px solid #e8edf5;
-
-                    box-shadow:
-                        0 15px 40px rgba(0,0,0,0.06);
-
-                    text-align: center;
-                }
-
-                .erro-icon {
-                    width: 75px;
-                    height: 75px;
-
-                    margin: 0 auto 20px;
-
-                    border-radius: 50%;
-
-                    background: #fee2e2;
-
-                    color: #dc2626;
-
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-
-                    font-size: 35px;
-                }
-
-                .erro-box h1 {
-                    font-size: 25px;
-                    margin-bottom: 12px;
-                }
-
-                .erro-box p {
-                    color: #6b7280;
-
-                    font-size: 14px;
-
-                    line-height: 1.6;
-
-                    margin-bottom: 25px;
-                }
-
-            </style>
-
-        </head>
-
-
-        <body>
-
-
-        <header class="navbar">
-
-            <div class="navbar-content">
-
-                <a
-                    href="dashboard.php"
-                    class="logo"
-                >
-
-                    <div class="logo-icon">
-                        P
-                    </div>
-
-                    Park <span>Point</span>
-
-                </a>
-
-
-                <nav class="nav-menu">
-
-                    <a href="dashboard.php">
-                        Início
-                    </a>
-
-                    <a href="vagas.php">
-                        Vagas
-                    </a>
-
-                    <a href="minhas-reservas.php">
-                        Reservas
-                    </a>
-
-                    <a href="historico.php">
-                        Histórico
-                    </a>
-
-                    <a
-                        href="logout.php"
-                        class="btn-login"
-                    >
-                        Sair
-                    </a>
-
-                </nav>
-
-            </div>
-
-        </header>
-
-
-        <main class="erro-page">
-
-            <div class="erro-box">
-
-                <div class="erro-icon">
-                    !
-                </div>
-
-                <h1>
-                    Este veículo já possui uma reserva
-                </h1>
-
-                <p>
-                    Você não pode reservar outra vaga
-                    utilizando o mesmo veículo enquanto
-                    a reserva atual estiver ativa.
-                </p>
-
-                <a
-                    href="minhas-reservas.php"
-                    class="btn-primary"
-                >
-                    Ver minhas reservas
-                </a>
-
-            </div>
-
-        </main>
-
-
-        <footer>
-
-            <p>
-                © 2026 Park Point —
-                Sistema de Estacionamento
-            </p>
-
-        </footer>
-
-
-        </body>
-
-        </html>
-
-        <?php
-
-        exit;
-    }
-
-    mysqli_stmt_close($stmt);
-
-
-    /*
-    =====================================================
-    VERIFICAR E BLOQUEAR A VAGA
-    =====================================================
-    */
-
-    $sql = "SELECT id, numero
-            FROM vagas
-            WHERE id = ?
-            AND status = 'livre'
-            FOR UPDATE";
-
-    $stmt = mysqli_prepare($conn, $sql);
-
-    if (!$stmt) {
-        throw new Exception(
-            "Erro ao preparar verificação da vaga."
-        );
-    }
-
-    mysqli_stmt_bind_param(
-        $stmt,
-        "i",
-        $vaga_id
-    );
-
-    mysqli_stmt_execute($stmt);
-
-    $resultado = mysqli_stmt_get_result($stmt);
-
-    if (mysqli_num_rows($resultado) === 0) {
-
-        mysqli_stmt_close($stmt);
-
-        throw new Exception(
-            "Essa vaga não está disponível."
-        );
-    }
-
-    $vaga = mysqli_fetch_assoc($resultado);
-
-    mysqli_stmt_close($stmt);
-
-
-    /*
-    =====================================================
-    CRIAR RESERVA
-    =====================================================
-    */
-
-    $sql = "INSERT INTO reservas
-            (
-                usuario_id,
-                veiculo_id,
-                vaga_id,
-                status
-            )
-            VALUES
-            (?, ?, ?, 'ativa')";
-
-    $stmt = mysqli_prepare($conn, $sql);
-
-    if (!$stmt) {
-        throw new Exception(
-            "Erro ao preparar criação da reserva."
-        );
-    }
-
-    mysqli_stmt_bind_param(
-        $stmt,
-        "iii",
-        $usuario_id,
-        $veiculo_id,
-        $vaga_id
-    );
-
-    if (!mysqli_stmt_execute($stmt)) {
-
-        mysqli_stmt_close($stmt);
-
-        throw new Exception(
-            "Erro ao criar reserva."
-        );
-    }
-
-    mysqli_stmt_close($stmt);
-
-
-    /*
-    =====================================================
-    OCUPAR VAGA
-    =====================================================
-    */
-
-    $sql = "UPDATE vagas
-            SET status = 'ocupada'
-            WHERE id = ?
-            AND status = 'livre'";
-
-    $stmt = mysqli_prepare($conn, $sql);
-
-    if (!$stmt) {
-        throw new Exception(
-            "Erro ao preparar atualização da vaga."
-        );
-    }
-
-    mysqli_stmt_bind_param(
-        $stmt,
-        "i",
-        $vaga_id
-    );
-
-    if (!mysqli_stmt_execute($stmt)) {
-
-        mysqli_stmt_close($stmt);
-
-        throw new Exception(
-            "Erro ao ocupar vaga."
-        );
-    }
-
-    if (mysqli_stmt_affected_rows($stmt) !== 1) {
-
-        mysqli_stmt_close($stmt);
-
-        throw new Exception(
-            "A vaga não pôde ser ocupada."
-        );
-    }
-
-    mysqli_stmt_close($stmt);
-
-
-    /*
-    =====================================================
-    CONFIRMAR TRANSAÇÃO
-    =====================================================
-    */
-
-    mysqli_commit($conn);
-
-    mysqli_close($conn);
-
-
-} catch (Exception $erro) {
-
-    mysqli_rollback($conn);
-
-    mysqli_close($conn);
-
-    die(
-        "Não foi possível realizar a reserva. " .
-        htmlspecialchars($erro->getMessage())
-    );
-}
-
-?>
+$veiculo_id = isset($_POST["veiculo_id"]) ? (int) $_POST["veiculo_id"] : 0;
+$vaga_id = isset($_POST["vaga_id"]) ? (int) $_POST["vaga_id"] : 0;
+
+function telaMensagem($tipo, $titulo, $mensagem, $botao1, $link1, $botao2 = null, $link2 = null)
+{
+    $classe = $tipo === "sucesso" ? "sucesso" : "erro";
+    $icone = $tipo === "sucesso" ? "✓" : "!";
+
+    ?>
 
 
 <!DOCTYPE html>
-
 <html lang="pt-BR">
 
 <head>
 
     <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>
-        Reserva confirmada - Park Point
-    </title>
-
-    <link
-        rel="stylesheet"
-        href="style.css"
-    >
+    <title>Park Point</title>
 
     <style>
 
-        .confirmacao-page {
-            min-height: calc(100vh - 150px);
-
-            display: flex;
-            justify-content: center;
-            align-items: center;
-
-            padding: 50px 20px;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        .confirmacao-box {
+        body {
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f3f6fa;
+            color: #172033;
+        }
+
+        .pp-menu {
             width: 100%;
-            max-width: 520px;
-
-            background: white;
-
-            padding: 45px 35px;
-
-            border-radius: 22px;
-
-            border: 1px solid #e8edf5;
-
-            box-shadow:
-                0 15px 40px rgba(0,0,0,0.06);
-
-            text-align: center;
+            min-height: 68px;
+            background: #111827;
+            display: flex;
+            align-items: center;
         }
 
-        .confirmacao-icon {
-            width: 75px;
-            height: 75px;
+        .pp-menu-content {
+            width: 100%;
+            padding: 0 35px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
 
-            margin: 0 auto 20px;
+        .pp-logo {
+            color: white;
+            text-decoration: none;
+            font-size: 24px;
+            font-weight: 800;
+        }
 
-            border-radius: 50%;
+        .pp-logo span {
+            color: #60a5fa;
+        }
 
-            background: #dcfce7;
+        .pp-nav {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
 
-            color: #16a34a;
+        .pp-nav a {
+            color: #dbe4ef;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 13px;
+            border-radius: 8px;
+            transition: 0.2s;
+        }
 
+        .pp-nav a:hover {
+            background: #273449;
+            color: white;
+        }
+
+        .pp-nav .sair {
+            background: #dc2626;
+            color: white;
+        }
+
+        .pp-page {
+            min-height: calc(100vh - 68px);
             display: flex;
             align-items: center;
             justify-content: center;
-
-            font-size: 38px;
+            padding: 40px 20px;
         }
 
-        .confirmacao-box h1 {
+        .pp-box {
+            width: 100%;
+            max-width: 620px;
+            background: white;
+            border-radius: 24px;
+            padding: 45px;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(15, 23, 42, 0.10);
+            border: 1px solid #e2e8f0;
+        }
+
+        .pp-icon {
+            width: 76px;
+            height: 76px;
+            margin: 0 auto 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: 800;
+        }
+
+        .pp-icon.erro {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .pp-icon.sucesso {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .pp-box h1 {
             font-size: 27px;
-
-            margin-bottom: 10px;
+            color: #111827;
+            margin-bottom: 13px;
         }
 
-        .confirmacao-box p {
-            color: #6b7280;
+        .pp-box p {
+            color: #64748b;
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
 
+        .pp-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .pp-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 190px;
+            padding: 13px 20px;
+            border-radius: 11px;
+            text-decoration: none;
             font-size: 14px;
-
-            margin-bottom: 10px;
-        }
-
-        .vaga-confirmada {
-            margin: 25px 0;
-
-            padding: 20px;
-
-            background: #f5f8fc;
-
-            border-radius: 15px;
-        }
-
-        .vaga-confirmada strong {
-            display: block;
-
-            font-size: 13px;
-
-            color: #6b7280;
-
-            margin-bottom: 5px;
-        }
-
-        .vaga-confirmada span {
-            font-size: 30px;
-
             font-weight: 700;
+            transition: 0.2s;
+        }
 
+        .pp-primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .pp-primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+        }
+
+        .pp-secondary {
+            background: #eef2f7;
+            color: #334155;
+        }
+
+        .pp-secondary:hover {
+            background: #e2e8f0;
+            transform: translateY(-2px);
+        }
+
+        .pp-back {
+            display: inline-block;
+            margin-top: 25px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .pp-back:hover {
             color: #2563eb;
         }
 
-        .confirmacao-botoes {
-            display: flex;
+        @media (max-width: 650px) {
 
-            justify-content: center;
+            .pp-menu-content {
+                padding: 14px 18px;
+                flex-direction: column;
+                gap: 12px;
+            }
 
-            gap: 12px;
+            .pp-nav {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
 
-            margin-top: 25px;
+            .pp-page {
+                padding: 25px 15px;
+            }
 
-            flex-wrap: wrap;
+            .pp-box {
+                padding: 35px 22px;
+            }
+
+            .pp-box h1 {
+                font-size: 23px;
+            }
+
+            .pp-button {
+                width: 100%;
+            }
+
         }
 
     </style>
 
 </head>
 
-
 <body>
 
+    <header class="pp-menu">
 
-<header class="navbar">
+        <div class="pp-menu-content">
 
-    <div class="navbar-content">
+            <a href="dashboard.php" class="pp-logo">
+                Park <span>Point</span>
+            </a>
 
-        <a
-            href="dashboard.php"
-            class="logo"
-        >
+            <nav class="pp-nav">
 
-            <div class="logo-icon">
-                P
+                <a href="dashboard.php">
+                    Início
+                </a>
+
+                <a href="vagas.php">
+                    Vagas
+                </a>
+
+                <a href="minhas-reservas.php">
+                    Minhas Reservas
+                </a>
+
+                <a href="historico.php">
+                    Histórico
+                </a>
+
+                <a href="logout.php" class="sair">
+                    Sair
+                </a>
+
+            </nav>
+
+        </div>
+
+    </header>
+
+
+    <main class="pp-page">
+
+        <div class="pp-box">
+
+            <div class="pp-icon <?php echo $classe; ?>">
+                <?php echo $icone; ?>
             </div>
 
-            Park <span>Point</span>
+            <h1>
+                <?php echo htmlspecialchars($titulo); ?>
+            </h1>
 
-        </a>
+            <p>
+                <?php echo htmlspecialchars($mensagem); ?>
+            </p>
 
+            <div class="pp-buttons">
 
-        <nav class="nav-menu">
+                <a href="<?php echo htmlspecialchars($link1); ?>" class="pp-button pp-primary">
+                    <?php echo htmlspecialchars($botao1); ?>
+                </a>
 
-            <a href="dashboard.php">
-                Início
+                <?php if ($botao2 !== null): ?>
+
+                    <a href="<?php echo htmlspecialchars($link2); ?>" class="pp-button pp-secondary">
+                        <?php echo htmlspecialchars($botao2); ?>
+                    </a>
+
+                <?php endif; ?>
+
+            </div>
+
+            <a href="dashboard.php" class="pp-back">
+                ← Voltar para o início
             </a>
-
-            <a href="vagas.php">
-                Vagas
-            </a>
-
-            <a href="minhas-reservas.php">
-                Reservas
-            </a>
-
-            <a href="historico.php">
-                Histórico
-            </a>
-
-            <a
-                href="logout.php"
-                class="btn-login"
-            >
-                Sair
-            </a>
-
-        </nav>
-
-    </div>
-
-</header>
-
-
-<main class="confirmacao-page">
-
-    <div class="confirmacao-box">
-
-
-        <div class="confirmacao-icon">
-            ✓
-        </div>
-
-
-        <h1>
-            Reserva confirmada!
-        </h1>
-
-
-        <p>
-            Sua vaga foi reservada com sucesso.
-        </p>
-
-
-        <div class="vaga-confirmada">
-
-            <strong>
-                VAGA RESERVADA
-            </strong>
-
-            <span>
-                <?= htmlspecialchars(
-                    $vaga["numero"]
-                ) ?>
-            </span>
 
         </div>
 
-
-        <p>
-            Agora você pode consultar sua reserva
-            na área <strong>Minhas reservas</strong>.
-        </p>
-
-
-        <div class="confirmacao-botoes">
-
-
-            <a
-                href="minhas-reservas.php"
-                class="btn-primary"
-            >
-                Ver minhas reservas
-            </a>
-
-
-            <a
-                href="dashboard.php"
-                class="btn-secondary"
-            >
-                Voltar ao início
-            </a>
-
-
-        </div>
-
-
-    </div>
-
-</main>
-
-
-<footer>
-
-    <p>
-        © 2026 Park Point —
-        Sistema de Estacionamento
-    </p>
-
-</footer>
-
+    </main>
 
 </body>
 
 </html>
+<?php
+
+exit;
+
+
+}
+
+if ($veiculo_id <= 0 || $vaga_id <= 0) {
+
+
+telaMensagem(
+    "erro",
+    "Dados inválidos",
+    "Não foi possível identificar o veículo ou a vaga selecionada.",
+    "Ver vagas",
+    "vagas.php",
+    "Voltar ao início",
+    "dashboard.php"
+);
+
+
+}
+
+/* Verifica se o veículo pertence ao usuário */
+
+$stmt = $pdo->prepare("
+SELECT id, placa, modelo
+FROM veiculos
+WHERE id = ?
+AND usuario_id = ?
+");
+
+$stmt->execute([
+$veiculo_id,
+$usuario_id
+]);
+
+$veiculo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$veiculo) {
+
+
+telaMensagem(
+    "erro",
+    "Veículo não encontrado",
+    "Esse veículo não pertence à sua conta ou não está mais cadastrado.",
+    "Meus veículos",
+    "meus-veiculos.php",
+    "Voltar ao início",
+    "dashboard.php"
+);
+
+
+}
+
+/* Verifica se o veículo já possui reserva */
+
+$stmt = $pdo->prepare("
+SELECT e.id, v.numero
+FROM estacionamentos e
+INNER JOIN vagas v ON e.vaga_id = v.id
+WHERE e.veiculo_id = ?
+AND e.saida IS NULL
+LIMIT 1
+");
+
+$stmt->execute([
+$veiculo_id
+]);
+
+$reserva_existente = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if ($reserva_existente) {
+
+
+telaMensagem(
+    "erro",
+    "Veículo já estacionado",
+    "O veículo " . $veiculo["placa"] . " já possui uma reserva ativa na vaga " . $reserva_existente["numero"] . ". Finalize essa reserva antes de fazer outra.",
+    "Ver minhas reservas",
+    "minhas-reservas.php",
+    "Escolher outra vaga",
+    "vagas.php"
+);
+
+
+}
+
+/* Inicia a reserva */
+
+try {
+
+
+$pdo->beginTransaction();
+
+
+/* Bloqueia a vaga */
+
+$stmt = $pdo->prepare("
+    SELECT id, numero, status
+    FROM vagas
+    WHERE id = ?
+    FOR UPDATE
+");
+
+$stmt->execute([
+    $vaga_id
+]);
+
+$vaga = $stmt->fetch(PDO::FETCH_ASSOC);
+
+
+if (!$vaga) {
+
+    $pdo->rollBack();
+
+    telaMensagem(
+        "erro",
+        "Vaga não encontrada",
+        "A vaga selecionada não existe mais.",
+        "Ver vagas",
+        "vagas.php",
+        "Voltar ao início",
+        "dashboard.php"
+    );
+}
+
+
+if ($vaga["status"] !== "livre") {
+
+    $pdo->rollBack();
+
+    telaMensagem(
+        "erro",
+        "Vaga ocupada",
+        "Essa vaga acabou de ser ocupada. Escolha outra vaga disponível.",
+        "Escolher outra vaga",
+        "vagas.php",
+        "Voltar ao início",
+        "dashboard.php"
+    );
+}
+
+
+/* Cria a reserva */
+
+$stmt = $pdo->prepare("
+    INSERT INTO estacionamentos
+    (veiculo_id, vaga_id, entrada)
+    VALUES (?, ?, NOW())
+");
+
+$stmt->execute([
+    $veiculo_id,
+    $vaga_id
+]);
+
+
+/* Marca a vaga como ocupada */
+
+$stmt = $pdo->prepare("
+    UPDATE vagas
+    SET status = 'ocupada'
+    WHERE id = ?
+");
+
+$stmt->execute([
+    $vaga_id
+]);
+
+
+$pdo->commit();
+
+
+telaMensagem(
+    "sucesso",
+    "Reserva realizada!",
+    "A vaga " . $vaga["numero"] . " foi reservada com sucesso para o veículo " . $veiculo["placa"] . ".",
+    "Ver minha reserva",
+    "minhas-reservas.php",
+    "Ver outras vagas",
+    "vagas.php"
+);
+
+
+} catch (PDOException $e) {
+
+if ($pdo->inTransaction()) {
+    $pdo->rollBack();
+}
+
+telaMensagem(
+    "erro",
+    "Não foi possível realizar a reserva",
+    "Ocorreu um problema ao processar sua reserva. Tente novamente.",
+    "Tentar novamente",
+    "vagas.php",
+    "Voltar ao início",
+    "dashboard.php"
+);
+
+
+}
+
+?>

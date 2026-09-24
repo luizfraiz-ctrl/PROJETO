@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="pt-br">
 
 <head>
@@ -334,9 +335,7 @@
 
 </head>
 
-
 <body>
-
 
 <!-- NAVBAR -->
 
@@ -352,7 +351,6 @@ Park <span>Point</span>
 
 </a>
 
-
 <nav class="nav-menu">
 
 <a href="index.php">Início</a>
@@ -363,7 +361,7 @@ Park <span>Point</span>
 
 <a href="#contato">Contato</a>
 
-<a href="login.php" class="btn-login">
+<a href="entrar.php" class="btn-login">
 Entrar
 </a>
 
@@ -372,8 +370,6 @@ Entrar
 </div>
 
 </header>
-
-
 
 <!-- HERO -->
 
@@ -398,7 +394,7 @@ reservas de forma rápida e prática.
 
 <div class="hero-buttons">
 
-<a href="login.php" class="btn-primary">
+<a href="entrar.php" class="btn-primary">
 Encontrar minha vaga
 </a>
 
@@ -409,7 +405,6 @@ Criar minha conta
 </div>
 
 </div>
-
 
 <div class="hero-visual">
 
@@ -426,7 +421,6 @@ Estacionamento
 </span>
 
 </div>
-
 
 <div class="parking-spaces">
 
@@ -454,8 +448,6 @@ Estacionamento
 
 </section>
 
-
-
 <!-- SOBRE -->
 
 <section class="home-section" id="sobre">
@@ -472,9 +464,7 @@ Uma maneira simples de encontrar e reservar sua vaga.
 
 </div>
 
-
 <div class="home-cards">
-
 
 <div class="home-card">
 
@@ -493,7 +483,6 @@ antes de chegar ao estacionamento.
 
 </div>
 
-
 <div class="home-card">
 
 <div class="home-card-icon">
@@ -510,7 +499,6 @@ veículos cadastrados na sua conta.
 </p>
 
 </div>
-
 
 <div class="home-card">
 
@@ -529,12 +517,9 @@ sempre que precisar.
 
 </div>
 
-
 </div>
 
 </section>
-
-
 
 <!-- COMO FUNCIONA -->
 
@@ -552,9 +537,7 @@ Reserve sua vaga em poucos passos.
 
 </div>
 
-
 <div class="home-cards">
-
 
 <div class="home-card">
 
@@ -572,7 +555,6 @@ Faça seu cadastro gratuitamente no Park Point.
 
 </div>
 
-
 <div class="home-card">
 
 <div class="home-card-icon">
@@ -588,7 +570,6 @@ Informe a placa, modelo e cor do seu veículo.
 </p>
 
 </div>
-
 
 <div class="home-card">
 
@@ -606,12 +587,9 @@ Escolha uma vaga livre e confirme sua reserva.
 
 </div>
 
-
 </div>
 
 </section>
-
-
 
 <!-- CONTATO -->
 
@@ -630,11 +608,9 @@ Fale com a equipe do Park Point.
 
 </div>
 
-
 <div class="contact-form-box">
 
 <form action="enviar-contato.php" method="POST">
-
 
 <label for="nome">
 Nome
@@ -646,8 +622,8 @@ id="nome"
 name="nome"
 placeholder="Digite seu nome"
 required
->
 
+>
 
 <label for="email">
 E-mail
@@ -659,8 +635,8 @@ id="email"
 name="email"
 placeholder="Digite seu e-mail"
 required
->
 
+>
 
 <label for="assunto">
 Assunto
@@ -672,8 +648,8 @@ id="assunto"
 name="assunto"
 placeholder="Qual é o assunto?"
 required
->
 
+>
 
 <label for="mensagem">
 Mensagem
@@ -686,19 +662,15 @@ placeholder="Digite sua mensagem..."
 required
 ></textarea>
 
-
 <button type="submit">
 Enviar mensagem
 </button>
-
 
 </form>
 
 </div>
 
 </section>
-
-
 
 <!-- RODAPÉ -->
 
@@ -709,7 +681,6 @@ Enviar mensagem
 </p>
 
 </footer>
-
 
 </body>
 
