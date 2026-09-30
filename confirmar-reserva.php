@@ -1,297 +1,182 @@
 <?php
-
 session_start();
 require_once "conexao.php";
 
 if (!isset($_SESSION["usuario_id"])) {
-    header("Location: login.php");
+    header("Location: entrar.php");
     exit;
 }
 
-$usuario_id = (int) $_SESSION["usuario_id"];
+$usuario_id = $_SESSION["usuario_id"];
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     header("Location: vagas.php");
     exit;
 }
 
-$veiculo_id = isset($_POST["veiculo_id"]) ? (int) $_POST["veiculo_id"] : 0;
-$vaga_id = isset($_POST["vaga_id"]) ? (int) $_POST["vaga_id"] : 0;
+$vaga_id = (int)($_POST["vaga_id"] ?? 0);
+$veiculo_id = (int)($_POST["veiculo_id"] ?? 0);
 
-function telaMensagem($tipo, $titulo, $mensagem, $botao1, $link1, $botao2 = null, $link2 = null)
+function paginaMensagem($titulo, $mensagem, $tipo = "erro")
 {
-    $classe = $tipo === "sucesso" ? "sucesso" : "erro";
-    $icone = $tipo === "sucesso" ? "✓" : "!";
+    $corPrincipal = $tipo === "sucesso" ? "#19a463" : "#e53935";
+    $corFundo = $tipo === "sucesso" ? "#ecfff5" : "#fff0f0";
 
     ?>
 
-
+```
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-
     <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Park Point</title>
+    <title><?php echo htmlspecialchars($titulo); ?> - Park Point</title>
 
     <style>
-
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
 
         body {
-            min-height: 100vh;
             font-family: Arial, Helvetica, sans-serif;
-            background: #f3f6fa;
+            background: #f4f7fb;
             color: #172033;
         }
 
-        .pp-menu {
-            width: 100%;
-            min-height: 68px;
-            background: #111827;
-            display: flex;
-            align-items: center;
-        }
-
-        .pp-menu-content {
-            width: 100%;
-            padding: 0 35px;
+        nav {
+            height: 72px;
+            background: #101827;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            padding: 0 6%;
         }
 
-        .pp-logo {
+        .logo {
+            text-decoration: none;
             color: white;
-            text-decoration: none;
-            font-size: 24px;
+            font-size: 21px;
             font-weight: 800;
+            letter-spacing: 1px;
         }
 
-        .pp-logo span {
-            color: #60a5fa;
+        .logo-p {
+            color: #00aaff;
         }
 
-        .pp-nav {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-        }
-
-        .pp-nav a {
-            color: #dbe4ef;
+        .sair {
             text-decoration: none;
-            font-size: 14px;
-            font-weight: 600;
-            padding: 10px 13px;
+            color: white;
+            background: #00aaff;
+            padding: 10px 16px;
             border-radius: 8px;
-            transition: 0.2s;
         }
 
-        .pp-nav a:hover {
-            background: #273449;
-            color: white;
+        .container {
+            width: 90%;
+            max-width: 650px;
+            margin: 80px auto;
         }
 
-        .pp-nav .sair {
-            background: #dc2626;
-            color: white;
-        }
-
-        .pp-page {
-            min-height: calc(100vh - 68px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
-        }
-
-        .pp-box {
-            width: 100%;
-            max-width: 620px;
+        .card {
             background: white;
-            border-radius: 24px;
-            padding: 45px;
+            border-radius: 18px;
+            padding: 40px;
             text-align: center;
-            box-shadow: 0 15px 40px rgba(15, 23, 42, 0.10);
-            border: 1px solid #e2e8f0;
+            box-shadow: 0 8px 30px rgba(20,35,55,.08);
+            border: 1px solid #e5ebf2;
         }
 
-        .pp-icon {
-            width: 76px;
-            height: 76px;
-            margin: 0 auto 24px;
+        .icone {
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
+            background: <?php echo $corFundo; ?>;
+            color: <?php echo $corPrincipal; ?>;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 40px;
-            font-weight: 800;
+            font-size: 32px;
+            margin: 0 auto 20px;
         }
 
-        .pp-icon.erro {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-
-        .pp-icon.sucesso {
-            background: #dcfce7;
-            color: #16a34a;
-        }
-
-        .pp-box h1 {
+        h1 {
             font-size: 27px;
-            color: #111827;
-            margin-bottom: 13px;
+            margin-bottom: 12px;
         }
 
-        .pp-box p {
-            color: #64748b;
-            font-size: 15px;
+        p {
+            color: #68758a;
             line-height: 1.6;
-            margin-bottom: 28px;
         }
 
-        .pp-buttons {
+        .botoes {
             display: flex;
-            justify-content: center;
             gap: 12px;
-            flex-wrap: wrap;
+            margin-top: 28px;
         }
 
-        .pp-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 190px;
-            padding: 13px 20px;
-            border-radius: 11px;
+        .botao {
+            flex: 1;
             text-decoration: none;
-            font-size: 14px;
-            font-weight: 700;
-            transition: 0.2s;
-        }
-
-        .pp-primary {
-            background: #2563eb;
+            padding: 14px;
+            border-radius: 9px;
+            background: #00aaff;
             color: white;
+            font-weight: bold;
         }
 
-        .pp-primary:hover {
-            background: #1d4ed8;
-            transform: translateY(-2px);
+        .botao:hover {
+            background: #008dcc;
         }
 
-        .pp-secondary {
-            background: #eef2f7;
-            color: #334155;
+        .botao.secundario {
+            background: #e9eef5;
+            color: #172033;
         }
 
-        .pp-secondary:hover {
-            background: #e2e8f0;
-            transform: translateY(-2px);
+        .botao.secundario:hover {
+            background: #dce4ee;
         }
 
-        .pp-back {
-            display: inline-block;
-            margin-top: 25px;
-            color: #64748b;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 600;
-        }
+        @media(max-width:600px) {
+            .card {
+                padding: 28px 20px;
+            }
 
-        .pp-back:hover {
-            color: #2563eb;
-        }
-
-        @media (max-width: 650px) {
-
-            .pp-menu-content {
-                padding: 14px 18px;
+            .botoes {
                 flex-direction: column;
-                gap: 12px;
             }
-
-            .pp-nav {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-
-            .pp-page {
-                padding: 25px 15px;
-            }
-
-            .pp-box {
-                padding: 35px 22px;
-            }
-
-            .pp-box h1 {
-                font-size: 23px;
-            }
-
-            .pp-button {
-                width: 100%;
-            }
-
         }
-
     </style>
-
 </head>
 
 <body>
 
-    <header class="pp-menu">
+    <nav>
 
-        <div class="pp-menu-content">
+        <a href="dashboard.php" class="logo">
+            <span class="logo-p">P</span>ARK POINT
+        </a>
 
-            <a href="dashboard.php" class="pp-logo">
-                Park <span>Point</span>
-            </a>
+        <a href="logout.php" class="sair">
+            Sair
+        </a>
 
-            <nav class="pp-nav">
+    </nav>
 
-                <a href="dashboard.php">
-                    Início
-                </a>
+    <main class="container">
 
-                <a href="vagas.php">
-                    Vagas
-                </a>
+        <div class="card">
 
-                <a href="minhas-reservas.php">
-                    Minhas Reservas
-                </a>
-
-                <a href="historico.php">
-                    Histórico
-                </a>
-
-                <a href="logout.php" class="sair">
-                    Sair
-                </a>
-
-            </nav>
-
-        </div>
-
-    </header>
-
-
-    <main class="pp-page">
-
-        <div class="pp-box">
-
-            <div class="pp-icon <?php echo $classe; ?>">
-                <?php echo $icone; ?>
+            <div class="icone">
+                <?php echo $tipo === "sucesso" ? "✓" : "!"; ?>
             </div>
 
             <h1>
@@ -302,183 +187,217 @@ function telaMensagem($tipo, $titulo, $mensagem, $botao1, $link1, $botao2 = null
                 <?php echo htmlspecialchars($mensagem); ?>
             </p>
 
-            <div class="pp-buttons">
+            <div class="botoes">
 
-                <a href="<?php echo htmlspecialchars($link1); ?>" class="pp-button pp-primary">
-                    <?php echo htmlspecialchars($botao1); ?>
+                <a
+                    href="vagas.php"
+                    class="botao"
+                >
+                    Ver vagas
                 </a>
 
-                <?php if ($botao2 !== null): ?>
-
-                    <a href="<?php echo htmlspecialchars($link2); ?>" class="pp-button pp-secondary">
-                        <?php echo htmlspecialchars($botao2); ?>
-                    </a>
-
-                <?php endif; ?>
+                <a
+                    href="dashboard.php"
+                    class="botao secundario"
+                >
+                    Voltar ao painel
+                </a>
 
             </div>
-
-            <a href="dashboard.php" class="pp-back">
-                ← Voltar para o início
-            </a>
 
         </div>
 
     </main>
 
 </body>
-
 </html>
 <?php
-
 exit;
 
 
 }
 
-if ($veiculo_id <= 0 || $vaga_id <= 0) {
+if ($vaga_id <= 0 || $veiculo_id <= 0) {
 
 
-telaMensagem(
-    "erro",
+paginaMensagem(
     "Dados inválidos",
-    "Não foi possível identificar o veículo ou a vaga selecionada.",
-    "Ver vagas",
-    "vagas.php",
-    "Voltar ao início",
-    "dashboard.php"
+    "Não foi possível identificar a vaga ou o veículo selecionado."
 );
 
 
 }
-
-/* Verifica se o veículo pertence ao usuário */
-
-$stmt = $pdo->prepare("
-SELECT id, placa, modelo
-FROM veiculos
-WHERE id = ?
-AND usuario_id = ?
-");
-
-$stmt->execute([
-$veiculo_id,
-$usuario_id
-]);
-
-$veiculo = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$veiculo) {
-
-
-telaMensagem(
-    "erro",
-    "Veículo não encontrado",
-    "Esse veículo não pertence à sua conta ou não está mais cadastrado.",
-    "Meus veículos",
-    "meus-veiculos.php",
-    "Voltar ao início",
-    "dashboard.php"
-);
-
-
-}
-
-/* Verifica se o veículo já possui reserva */
-
-$stmt = $pdo->prepare("
-SELECT e.id, v.numero
-FROM estacionamentos e
-INNER JOIN vagas v ON e.vaga_id = v.id
-WHERE e.veiculo_id = ?
-AND e.saida IS NULL
-LIMIT 1
-");
-
-$stmt->execute([
-$veiculo_id
-]);
-
-$reserva_existente = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if ($reserva_existente) {
-
-
-telaMensagem(
-    "erro",
-    "Veículo já estacionado",
-    "O veículo " . $veiculo["placa"] . " já possui uma reserva ativa na vaga " . $reserva_existente["numero"] . ". Finalize essa reserva antes de fazer outra.",
-    "Ver minhas reservas",
-    "minhas-reservas.php",
-    "Escolher outra vaga",
-    "vagas.php"
-);
-
-
-}
-
-/* Inicia a reserva */
 
 try {
 
 
 $pdo->beginTransaction();
 
-
-/* Bloqueia a vaga */
-
+/*
+ * 1. Verifica o veículo.
+ */
 $stmt = $pdo->prepare("
-    SELECT id, numero, status
-    FROM vagas
+    SELECT
+        id,
+        placa,
+        modelo,
+        cor
+    FROM veiculos
     WHERE id = ?
-    FOR UPDATE
+      AND usuario_id = ?
+    LIMIT 1
 ");
 
 $stmt->execute([
-    $vaga_id
+    $veiculo_id,
+    $usuario_id
 ]);
 
-$vaga = $stmt->fetch(PDO::FETCH_ASSOC);
+$veiculo = $stmt->fetch();
 
+if (!$veiculo) {
+
+    $pdo->rollBack();
+
+    paginaMensagem(
+        "Veículo não encontrado",
+        "O veículo selecionado não pertence à sua conta."
+    );
+}
+
+
+/*
+ * 2. Verifica se o veículo já está estacionado.
+ */
+$stmt = $pdo->prepare("
+    SELECT
+        e.id,
+        e.vaga_id,
+        v.numero AS vaga_numero,
+        est.nome AS estabelecimento_nome
+    FROM estacionamentos e
+
+    INNER JOIN vagas v
+        ON v.id = e.vaga_id
+
+    INNER JOIN estabelecimentos est
+        ON est.id = v.estabelecimento_id
+
+    WHERE e.veiculo_id = ?
+      AND e.saida IS NULL
+
+    LIMIT 1
+
+    FOR UPDATE
+");
+
+$stmt->execute([$veiculo_id]);
+
+$estacionamentoAtivo = $stmt->fetch();
+
+if ($estacionamentoAtivo) {
+
+    $pdo->rollBack();
+
+    paginaMensagem(
+        "Veículo já estacionado",
+        "O veículo " .
+        $veiculo["placa"] .
+        " já está estacionado na vaga " .
+        $estacionamentoAtivo["vaga_numero"] .
+        " do estacionamento " .
+        $estacionamentoAtivo["estabelecimento_nome"] .
+        "."
+    );
+}
+
+
+/*
+ * 3. Bloqueia a vaga enquanto verifica.
+ */
+$stmt = $pdo->prepare("
+    SELECT
+        v.id,
+        v.numero,
+        v.status,
+        v.estabelecimento_id,
+        e.nome AS estabelecimento_nome
+    FROM vagas v
+
+    INNER JOIN estabelecimentos e
+        ON e.id = v.estabelecimento_id
+
+    WHERE v.id = ?
+
+    LIMIT 1
+
+    FOR UPDATE
+");
+
+$stmt->execute([$vaga_id]);
+
+$vaga = $stmt->fetch();
 
 if (!$vaga) {
 
     $pdo->rollBack();
 
-    telaMensagem(
-        "erro",
+    paginaMensagem(
         "Vaga não encontrada",
-        "A vaga selecionada não existe mais.",
-        "Ver vagas",
-        "vagas.php",
-        "Voltar ao início",
-        "dashboard.php"
+        "A vaga selecionada não existe."
     );
 }
 
 
+/*
+ * 4. Confirma que a vaga está livre.
+ */
 if ($vaga["status"] !== "livre") {
 
     $pdo->rollBack();
 
-    telaMensagem(
-        "erro",
+    paginaMensagem(
         "Vaga ocupada",
-        "Essa vaga acabou de ser ocupada. Escolha outra vaga disponível.",
-        "Escolher outra vaga",
-        "vagas.php",
-        "Voltar ao início",
-        "dashboard.php"
+        "Esta vaga acabou de ser ocupada. Escolha outra vaga."
     );
 }
 
 
-/* Cria a reserva */
+/*
+ * 5. Confirma que a vaga pertence a um estacionamento.
+ */
+if (
+    empty($vaga["estabelecimento_id"]) ||
+    empty($vaga["estabelecimento_nome"])
+) {
 
+    $pdo->rollBack();
+
+    paginaMensagem(
+        "Vaga sem estacionamento",
+        "Esta vaga ainda não está vinculada a um estacionamento."
+    );
+}
+
+
+/*
+ * 6. Cria o estacionamento/reserva.
+ */
 $stmt = $pdo->prepare("
     INSERT INTO estacionamentos
-    (veiculo_id, vaga_id, entrada)
-    VALUES (?, ?, NOW())
+    (
+        veiculo_id,
+        vaga_id,
+        entrada,
+        saida
+    )
+    VALUES
+    (
+        ?,
+        ?,
+        NOW(),
+        NULL
+    )
 ");
 
 $stmt->execute([
@@ -487,50 +406,65 @@ $stmt->execute([
 ]);
 
 
-/* Marca a vaga como ocupada */
-
+/*
+ * 7. Atualiza o status da vaga.
+ */
 $stmt = $pdo->prepare("
     UPDATE vagas
     SET status = 'ocupada'
     WHERE id = ?
+      AND status = 'livre'
 ");
 
-$stmt->execute([
-    $vaga_id
-]);
+$stmt->execute([$vaga_id]);
 
 
+/*
+ * Se nenhuma linha foi alterada, outra operação
+ * ocupou a vaga antes da atualização.
+ */
+if ($stmt->rowCount() !== 1) {
+
+    $pdo->rollBack();
+
+    paginaMensagem(
+        "Vaga ocupada",
+        "A vaga não está mais disponível. Escolha outra."
+    );
+}
+
+
+/*
+ * 8. Finaliza tudo.
+ */
 $pdo->commit();
 
 
-telaMensagem(
-    "sucesso",
+paginaMensagem(
     "Reserva realizada!",
-    "A vaga " . $vaga["numero"] . " foi reservada com sucesso para o veículo " . $veiculo["placa"] . ".",
-    "Ver minha reserva",
-    "minhas-reservas.php",
-    "Ver outras vagas",
-    "vagas.php"
+    "O veículo " .
+    $veiculo["placa"] .
+    " foi estacionado na vaga " .
+    $vaga["numero"] .
+    " do " .
+    $vaga["estabelecimento_nome"] .
+    ".",
+    "sucesso"
 );
 
 
 } catch (PDOException $e) {
 
+
 if ($pdo->inTransaction()) {
     $pdo->rollBack();
 }
 
-telaMensagem(
-    "erro",
-    "Não foi possível realizar a reserva",
-    "Ocorreu um problema ao processar sua reserva. Tente novamente.",
-    "Tentar novamente",
-    "vagas.php",
-    "Voltar ao início",
-    "dashboard.php"
+paginaMensagem(
+    "Não foi possível reservar",
+    "Ocorreu um erro ao realizar a reserva. Verifique os dados e tente novamente."
 );
 
 
 }
-
 ?>

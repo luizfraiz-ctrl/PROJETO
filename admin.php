@@ -1,5 +1,7 @@
 <?php
+
 session_start();
+
 require_once "conexao.php";
 
 if (!isset($_SESSION["usuario_id"])) {
@@ -7,70 +9,92 @@ if (!isset($_SESSION["usuario_id"])) {
     exit;
 }
 
-if (!isset($_SESSION["perfil"]) || $_SESSION["perfil"] !== "admin") {
+$usuario_id = (int) $_SESSION["usuario_id"];
+$perfil = $_SESSION["perfil"] ?? "cliente";
+
+if ($perfil !== "admin") {
     header("Location: dashboard.php");
     exit;
 }
+
+/*
+ * Marca que o administrador está navegando
+ * pela área administrativa.
+ */
+$_SESSION["navegacao_admin"] = true;
+
 
 /* =========================
    ESTATÍSTICAS
 ========================= */
 
-$totalUsuarios = $pdo->query("
-    SELECT COUNT(*) 
+$stmt = $pdo->query("
+    SELECT COUNT(*)
     FROM usuarios
-")->fetchColumn();
+");
 
-$totalVeiculos = $pdo->query("
-    SELECT COUNT(*) 
+$totalUsuarios = (int) $stmt->fetchColumn();
+
+
+$stmt = $pdo->query("
+    SELECT COUNT(*)
     FROM veiculos
-")->fetchColumn();
+");
 
-$vagasLivres = $pdo->query("
+$totalVeiculos = (int) $stmt->fetchColumn();
+
+
+$stmt = $pdo->query("
+    SELECT COUNT(*)
+    FROM estabelecimentos
+");
+
+$totalEstabelecimentos = (int) $stmt->fetchColumn();
+
+
+$stmt = $pdo->query("
     SELECT COUNT(*)
     FROM vagas
     WHERE status = 'livre'
-")->fetchColumn();
+");
 
-$vagasOcupadas = $pdo->query("
-    SELECT COUNT(*)
-    FROM vagas
-    WHERE status = 'ocupada'
-")->fetchColumn();
+$vagasLivres = (int) $stmt->fetchColumn();
+
 
 /* =========================
-   RESERVAS ATIVAS
+   ESTACIONAMENTOS
 ========================= */
 
 $stmt = $pdo->query("
     SELECT
         e.id,
-        e.entrada,
-        v.numero AS vaga,
-        ve.placa,
-        ve.modelo,
-        u.nome AS usuario
-    FROM estacionamentos e
-    INNER JOIN vagas v ON e.vaga_id = v.id
-    INNER JOIN veiculos ve ON e.veiculo_id = ve.id
-    INNER JOIN usuarios u ON ve.usuario_id = u.id
-    WHERE e.saida IS NULL
-    ORDER BY e.entrada DESC
+        e.nome,
+        e.endereco,
+        e.telefone,
+        e.valor_hora,
+        e.total_vagas,
+        COUNT(v.id) AS vagas_cadastradas,
+        SUM(
+            CASE
+                WHEN v.status = 'livre' THEN 1
+                ELSE 0
+            END
+        ) AS vagas_livres
+    FROM estabelecimentos e
+    LEFT JOIN vagas v
+        ON v.estabelecimento_id = e.id
+    GROUP BY
+        e.id,
+        e.nome,
+        e.endereco,
+        e.telefone,
+        e.valor_hora,
+        e.total_vagas
+    ORDER BY e.id DESC
 ");
 
-$reservasAtivas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$estabelecimentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-/* =========================
-   USUÁRIOS
-========================= */
-
-$stmt = $pdo->query("
-    SELECT id, nome, email, perfil, criado_em
-    FROM usuarios
-    ORDER BY id DESC
-");
-
-$usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -79,323 +103,450 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <head>
 
-```
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Administrador - Park Point</title>
+<title>Administrativo - Park Point</title>
 
 <style>
 
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        font-family: Arial, sans-serif;
-    }
+* {
+    box-sizing: border-box;
+}
 
-    body {
-        background: #f3f6fa;
-        color: #172033;
-    }
+body {
+    margin: 0;
 
-    /* NAVBAR */
+    font-family: Arial, Helvetica, sans-serif;
+
+    background: #f4f7fb;
+
+    color: #172033;
+}
+
+
+/* =========================
+   NAVBAR
+========================= */
+
+nav {
+    min-height: 70px;
+
+    background: #101827;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 15px 40px;
+
+    gap: 20px;
+}
+
+.logo {
+    color: white;
+
+    text-decoration: none;
+
+    font-size: 24px;
+
+    font-weight: bold;
+
+    white-space: nowrap;
+}
+
+.logo-p {
+    color: #00aaff;
+}
+
+.menu {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: flex-end;
+
+    gap: 22px;
+
+    flex-wrap: wrap;
+}
+
+.menu a {
+    color: white;
+
+    text-decoration: none;
+
+    font-size: 14px;
+
+    transition: .2s;
+}
+
+.menu a:hover {
+    color: #00aaff;
+}
+
+.menu .ativo {
+    color: #00aaff;
+}
+
+.menu .sair {
+    color: #ff7070;
+}
+
+.menu .sair:hover {
+    color: #ff3b3b;
+}
+
+
+/* =========================
+   CONTAINER
+========================= */
+
+.container {
+    max-width: 1150px;
+
+    margin: 40px auto;
+
+    padding: 0 20px;
+}
+
+
+/* =========================
+   CABEÇALHO
+========================= */
+
+.cabecalho {
+    margin-bottom: 30px;
+}
+
+.cabecalho h1 {
+    margin: 0 0 8px;
+}
+
+.cabecalho p {
+    color: #667085;
+
+    margin: 0;
+}
+
+
+/* =========================
+   ESTATÍSTICAS
+========================= */
+
+.stats {
+    display: grid;
+
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 18px;
+
+    margin-bottom: 30px;
+}
+
+.stat {
+    background: white;
+
+    border-radius: 16px;
+
+    padding: 23px;
+
+    box-shadow: 0 5px 20px rgba(0,0,0,.06);
+}
+
+.stat span {
+    display: block;
+
+    color: #667085;
+
+    font-size: 14px;
+}
+
+.stat strong {
+    display: block;
+
+    color: #00aaff;
+
+    font-size: 32px;
+
+    margin-top: 10px;
+}
+
+
+/* =========================
+   AÇÕES
+========================= */
+
+.acoes {
+    background: white;
+
+    border-radius: 16px;
+
+    padding: 25px;
+
+    margin-bottom: 30px;
+
+    box-shadow: 0 5px 20px rgba(0,0,0,.06);
+}
+
+.acoes h2 {
+    margin-top: 0;
+}
+
+.botoes {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 12px;
+}
+
+.botao {
+    display: inline-block;
+
+    padding: 13px 18px;
+
+    border-radius: 10px;
+
+    background: #00aaff;
+
+    color: white;
+
+    text-decoration: none;
+
+    font-weight: bold;
+
+    transition: .2s;
+}
+
+.botao:hover {
+    background: #008dcc;
+
+    transform: translateY(-2px);
+}
+
+.botao.escuro {
+    background: #172033;
+}
+
+.botao.escuro:hover {
+    background: #26344d;
+}
+
+
+/* =========================
+   ESTACIONAMENTOS
+========================= */
+
+.secao {
+    background: white;
+
+    border-radius: 16px;
+
+    padding: 30px;
+
+    margin-bottom: 30px;
+
+    box-shadow: 0 5px 20px rgba(0,0,0,.06);
+}
+
+.secao h2 {
+    margin-top: 0;
+}
+
+.estabelecimento {
+    border: 1px solid #e4e7ec;
+
+    border-radius: 14px;
+
+    padding: 22px;
+
+    margin-top: 18px;
+
+    background: #fafbfc;
+}
+
+.estabelecimento h3 {
+    margin-top: 0;
+
+    margin-bottom: 8px;
+}
+
+.endereco {
+    color: #667085;
+
+    margin-bottom: 18px;
+}
+
+.dados {
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 12px;
+}
+
+.dado {
+    background: white;
+
+    border-radius: 10px;
+
+    padding: 14px;
+
+    border: 1px solid #e5e7eb;
+}
+
+.dado span {
+    display: block;
+
+    font-size: 12px;
+
+    color: #667085;
+
+    margin-bottom: 5px;
+}
+
+.dado strong {
+    font-size: 15px;
+}
+
+
+/* =========================
+   ESTADO DAS VAGAS
+========================= */
+
+.vagas-status {
+    margin-top: 18px;
+
+    display: flex;
+
+    gap: 10px;
+
+    flex-wrap: wrap;
+}
+
+.status {
+    padding: 8px 12px;
+
+    border-radius: 20px;
+
+    font-size: 13px;
+
+    font-weight: bold;
+}
+
+.status.livre {
+    background: #dcfce7;
+
+    color: #15803d;
+}
+
+.status.ocupada {
+    background: #fee2e2;
+
+    color: #b91c1c;
+}
+
+
+/* =========================
+   SEM ESTACIONAMENTO
+========================= */
+
+.vazio {
+    text-align: center;
+
+    padding: 40px 20px;
+
+    color: #667085;
+}
+
+
+/* =========================
+   RESPONSIVO
+========================= */
+
+@media (max-width: 950px) {
+
+    .stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
 
     nav {
-        height: 72px;
-        background: #07111f;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 40px;
-        color: white;
-    }
+        flex-direction: column;
 
-    .logo {
-        text-decoration: none;
-        color: white;
-        font-size: 25px;
-        font-weight: bold;
-    }
-
-    .logo-p {
-        color: #00aaff;
-    }
-
-    .nav-links {
-        display: flex;
-        gap: 22px;
         align-items: center;
     }
 
-    .nav-links a {
-        color: white;
-        text-decoration: none;
-        font-size: 14px;
+    .menu {
+        justify-content: center;
     }
 
-    .nav-links a:hover {
-        color: #00aaff;
+}
+
+@media (max-width: 650px) {
+
+    .stats {
+        grid-template-columns: 1fr;
     }
 
-    .logout {
-        background: #e53935;
-        padding: 10px 16px;
-        border-radius: 8px;
+    .dados {
+        grid-template-columns: 1fr;
     }
-
-    .logout:hover {
-        color: white !important;
-        background: #c62828;
-    }
-
-    /* CONTAINER */
 
     .container {
-        max-width: 1250px;
-        margin: auto;
-        padding: 35px 25px 60px;
+        margin-top: 25px;
     }
 
-    .topo {
-        margin-bottom: 30px;
-    }
-
-    .topo h1 {
-        font-size: 32px;
-        margin-bottom: 8px;
-    }
-
-    .topo p {
-        color: #687386;
-    }
-
-    /* CARDS */
-
-    .estatisticas {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 20px;
-        margin-bottom: 35px;
-    }
-
-    .card-estatistica {
-        background: white;
-        border-radius: 15px;
-        padding: 25px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.06);
-        border-left: 5px solid #008cff;
-    }
-
-    .card-estatistica h3 {
-        color: #687386;
-        font-size: 15px;
-        margin-bottom: 12px;
-    }
-
-    .numero {
-        font-size: 34px;
-        font-weight: bold;
-    }
-
-    /* SEÇÕES */
-
-    .secao {
-        background: white;
-        border-radius: 15px;
-        padding: 25px;
-        margin-bottom: 30px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.06);
-    }
-
-    .secao h2 {
-        margin-bottom: 20px;
-        font-size: 22px;
-    }
-
-    /* TABELAS */
-
-    .tabela-container {
-        overflow-x: auto;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 650px;
-    }
-
-    th {
-        text-align: left;
-        background: #f3f6fa;
-        padding: 13px;
-        font-size: 14px;
-    }
-
-    td {
-        padding: 14px 13px;
-        border-bottom: 1px solid #edf0f4;
-        font-size: 14px;
-    }
-
-    tr:hover td {
-        background: #fafcff;
-    }
-
-    /* PERFIS */
-
-    .perfil {
-        display: inline-block;
-        padding: 6px 10px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: bold;
-    }
-
-    .perfil-admin {
-        background: #e8eaf6;
-        color: #3949ab;
-    }
-
-    .perfil-cliente {
-        background: #e8f5e9;
-        color: #2e7d32;
-    }
-
-    .perfil-funcionario {
-        background: #fff3e0;
-        color: #ef6c00;
-    }
-
-    /* VAGAS */
-
-    .vagas {
-        display: grid;
-        grid-template-columns: repeat(10, 1fr);
-        gap: 10px;
-    }
-
-    .vaga {
-        padding: 15px 5px;
-        text-align: center;
-        border-radius: 9px;
-        font-weight: bold;
-        font-size: 13px;
-    }
-
-    .vaga-livre {
-        background: #dff5e3;
-        color: #218838;
-    }
-
-    .vaga-ocupada {
-        background: #ffe0e0;
-        color: #c62828;
-    }
-
-    /* BOTÕES */
-
-    .acoes {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
-
-    .botao {
-        display: inline-block;
-        text-decoration: none;
-        background: #008cff;
-        color: white;
-        padding: 12px 18px;
-        border-radius: 9px;
-        font-weight: bold;
-    }
-
-    .botao:hover {
-        background: #0074d4;
-    }
-
-    .botao-secundario {
-        background: #172033;
-    }
-
-    .botao-secundario:hover {
-        background: #0b1422;
-    }
-
-    /* RESPONSIVO */
-
-    @media (max-width: 900px) {
-
-        .estatisticas {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .vagas {
-            grid-template-columns: repeat(5, 1fr);
-        }
-
-        nav {
-            padding: 0 20px;
-        }
-
-        .nav-links {
-            gap: 10px;
-        }
-
-    }
-
-    @media (max-width: 600px) {
-
-        nav {
-            height: auto;
-            padding: 18px;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .nav-links {
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .estatisticas {
-            grid-template-columns: 1fr;
-        }
-
-        .vagas {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .container {
-            padding: 25px 15px;
-        }
-
-    }
+}
 
 </style>
-```
 
 </head>
 
 <body>
 
+<!-- =========================
+     NAVBAR
+========================= -->
+
 <nav>
 
 ```
 <a href="admin.php" class="logo">
+
     <span class="logo-p">P</span>ARK POINT
+
 </a>
 
-<div class="nav-links">
 
-    <a href="admin.php">Painel</a>
+<div class="menu">
 
-    <a href="dashboard.php">Área do cliente</a>
+    <a href="admin.php" class="ativo">
+        Administração
+    </a>
 
-    <a href="vagas.php">Vagas</a>
+    <a href="vagas.php">
+        Vagas
+    </a>
 
-    <a href="logout.php" class="logout">Sair</a>
+    <a href="funcionario.php">
+        Funcionário
+    </a>
+
+    <a href="cadastro-estacionamento.php">
+        Novo estacionamento
+    </a>
+
+    <a href="dashboard.php">
+        Meu painel
+    </a>
+
+    <a href="logout.php" class="sair">
+        Sair
+    </a>
 
 </div>
 ```
@@ -405,13 +556,16 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <div class="container">
 
 ```
-<div class="topo">
+<!-- CABEÇALHO -->
 
-    <h1>Painel Administrativo</h1>
+<div class="cabecalho">
+
+    <h1>
+        Área administrativa
+    </h1>
 
     <p>
-        Bem-vindo, <?= htmlspecialchars($_SESSION["usuario_nome"]) ?>.
-        Aqui você pode acompanhar o sistema Park Point.
+        Gerencie os estacionamentos e acompanhe o sistema Park Point.
     </p>
 
 </div>
@@ -419,269 +573,245 @@ $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <!-- ESTATÍSTICAS -->
 
-<div class="estatisticas">
+<div class="stats">
 
-    <div class="card-estatistica">
 
-        <h3>Usuários cadastrados</h3>
+    <div class="stat">
 
-        <div class="numero">
+        <span>
+            Usuários
+        </span>
+
+        <strong>
             <?= $totalUsuarios ?>
-        </div>
+        </strong>
 
     </div>
 
 
-    <div class="card-estatistica">
+    <div class="stat">
 
-        <h3>Veículos cadastrados</h3>
+        <span>
+            Veículos
+        </span>
 
-        <div class="numero">
+        <strong>
             <?= $totalVeiculos ?>
-        </div>
+        </strong>
 
     </div>
 
 
-    <div class="card-estatistica">
+    <div class="stat">
 
-        <h3>Vagas livres</h3>
+        <span>
+            Estacionamentos
+        </span>
 
-        <div class="numero">
+        <strong>
+            <?= $totalEstabelecimentos ?>
+        </strong>
+
+    </div>
+
+
+    <div class="stat">
+
+        <span>
+            Vagas livres
+        </span>
+
+        <strong>
             <?= $vagasLivres ?>
-        </div>
+        </strong>
 
     </div>
 
 
-    <div class="card-estatistica">
+</div>
 
-        <h3>Vagas ocupadas</h3>
 
-        <div class="numero">
-            <?= $vagasOcupadas ?>
-        </div>
+<!-- AÇÕES -->
+
+<div class="acoes">
+
+    <h2>
+        Ações rápidas
+    </h2>
+
+
+    <div class="botoes">
+
+        <a
+            href="cadastro-estacionamento.php"
+            class="botao"
+        >
+            + Novo estacionamento
+        </a>
+
+
+        <a
+            href="vagas.php"
+            class="botao escuro"
+        >
+            🅿️ Ver vagas
+        </a>
+
+
+        <a
+            href="funcionario.php"
+            class="botao escuro"
+        >
+            👨‍💼 Área do funcionário
+        </a>
+
+
+        <a
+            href="dashboard.php"
+            class="botao escuro"
+        >
+            🏠 Meu painel
+        </a>
 
     </div>
 
 </div>
 
 
-<!-- VAGAS -->
+<!-- ESTACIONAMENTOS -->
 
 <div class="secao">
 
-    <h2>Status das vagas</h2>
-
-    <div class="vagas">
-
-        <?php
-
-        $todasVagas = $pdo->query("
-            SELECT numero, status
-            FROM vagas
-            ORDER BY numero
-        ")->fetchAll(PDO::FETCH_ASSOC);
-
-        foreach ($todasVagas as $vaga):
-
-        ?>
-
-            <div class="vaga
-                <?= $vaga["status"] === "livre"
-                    ? "vaga-livre"
-                    : "vaga-ocupada" ?>">
-
-                Vaga <?= htmlspecialchars($vaga["numero"]) ?>
-
-                <br>
-
-                <?= ucfirst($vaga["status"]) ?>
-
-            </div>
-
-        <?php endforeach; ?>
-
-    </div>
-
-</div>
+    <h2>
+        Meus estacionamentos
+    </h2>
 
 
-<!-- RESERVAS ATIVAS -->
+    <?php if (!$estabelecimentos): ?>
 
-<div class="secao">
+        <div class="vazio">
 
-    <h2>Estacionamentos ativos</h2>
+            <p>
+                Você ainda não possui estacionamentos cadastrados.
+            </p>
 
-    <?php if (count($reservasAtivas) === 0): ?>
+            <a
+                href="cadastro-estacionamento.php"
+                class="botao"
+            >
+                Cadastrar estacionamento
+            </a>
 
-        <p style="color:#687386;">
-            Não existem estacionamentos ativos no momento.
-        </p>
+        </div>
 
     <?php else: ?>
 
-        <div class="tabela-container">
 
-            <table>
+        <?php foreach ($estabelecimentos as $est): ?>
 
-                <thead>
+            <?php
 
-                    <tr>
+            $totalVagasEst = (int) $est["vagas_cadastradas"];
 
-                        <th>Usuário</th>
-                        <th>Veículo</th>
-                        <th>Placa</th>
-                        <th>Vaga</th>
-                        <th>Entrada</th>
+            $livres = (int) ($est["vagas_livres"] ?? 0);
 
-                    </tr>
+            $ocupadas = $totalVagasEst - $livres;
 
-                </thead>
+            ?>
 
-                <tbody>
 
-                    <?php foreach ($reservasAtivas as $reserva): ?>
+            <div class="estabelecimento">
 
-                        <tr>
+                <h3>
+                    <?= htmlspecialchars($est["nome"]) ?>
+                </h3>
 
-                            <td>
-                                <?= htmlspecialchars($reserva["usuario"]) ?>
-                            </td>
 
-                            <td>
-                                <?= htmlspecialchars($reserva["modelo"]) ?>
-                            </td>
+                <div class="endereco">
 
-                            <td>
-                                <?= htmlspecialchars($reserva["placa"]) ?>
-                            </td>
+                    📍
+                    <?= htmlspecialchars($est["endereco"]) ?>
 
-                            <td>
-                                Vaga <?= htmlspecialchars($reserva["vaga"]) ?>
-                            </td>
+                </div>
 
-                            <td>
-                                <?= date(
-                                    "d/m/Y H:i",
-                                    strtotime($reserva["entrada"])
-                                ) ?>
-                            </td>
 
-                        </tr>
+                <div class="dados">
 
-                    <?php endforeach; ?>
 
-                </tbody>
+                    <div class="dado">
 
-            </table>
+                        <span>
+                            Total de vagas
+                        </span>
 
-        </div>
+                        <strong>
+                            <?= $totalVagasEst ?>
+                        </strong>
+
+                    </div>
+
+
+                    <div class="dado">
+
+                        <span>
+                            Valor por hora
+                        </span>
+
+                        <strong>
+
+                            R$
+                            <?= number_format(
+                                $est["valor_hora"],
+                                2,
+                                ",",
+                                "."
+                            ) ?>
+
+                        </strong>
+
+                    </div>
+
+
+                    <div class="dado">
+
+                        <span>
+                            Telefone
+                        </span>
+
+                        <strong>
+                            <?= htmlspecialchars($est["telefone"]) ?>
+                        </strong>
+
+                    </div>
+
+
+                </div>
+
+
+                <div class="vagas-status">
+
+                    <div class="status livre">
+
+                        <?= $livres ?> vagas livres
+
+                    </div>
+
+
+                    <div class="status ocupada">
+
+                        <?= $ocupadas ?> vagas ocupadas
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+        <?php endforeach; ?>
+
 
     <?php endif; ?>
-
-</div>
-
-
-<!-- USUÁRIOS -->
-
-<div class="secao">
-
-    <h2>Usuários do sistema</h2>
-
-    <div class="tabela-container">
-
-        <table>
-
-            <thead>
-
-                <tr>
-
-                    <th>ID</th>
-                    <th>Nome</th>
-                    <th>E-mail</th>
-                    <th>Perfil</th>
-                    <th>Cadastro</th>
-
-                </tr>
-
-            </thead>
-
-            <tbody>
-
-                <?php foreach ($usuarios as $usuario): ?>
-
-                    <tr>
-
-                        <td>
-                            <?= $usuario["id"] ?>
-                        </td>
-
-                        <td>
-                            <?= htmlspecialchars($usuario["nome"]) ?>
-                        </td>
-
-                        <td>
-                            <?= htmlspecialchars($usuario["email"]) ?>
-                        </td>
-
-                        <td>
-
-                            <?php
-
-                            $classePerfil = "perfil-" . $usuario["perfil"];
-
-                            ?>
-
-                            <span class="perfil <?= $classePerfil ?>">
-
-                                <?= ucfirst($usuario["perfil"]) ?>
-
-                            </span>
-
-                        </td>
-
-                        <td>
-                            <?= date(
-                                "d/m/Y",
-                                strtotime($usuario["criado_em"])
-                            ) ?>
-                        </td>
-
-                    </tr>
-
-                <?php endforeach; ?>
-
-            </tbody>
-
-        </table>
-
-    </div>
-
-</div>
-
-
-<!-- ACESSOS -->
-
-<div class="secao">
-
-    <h2>Acessos rápidos</h2>
-
-    <div class="acoes">
-
-        <a href="vagas.php" class="botao">
-            Ver vagas
-        </a>
-
-        <a href="historico.php" class="botao botao-secundario">
-            Ver histórico
-        </a>
-
-        <a href="meus-veiculos.php" class="botao botao-secundario">
-            Ver veículos
-        </a>
-
-    </div>
 
 </div>
 ```

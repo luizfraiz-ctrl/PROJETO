@@ -97,7 +97,7 @@ if ($id <= 0) {
 
 <head>
 
-```
+
 <meta charset="UTF-8">
 
 <meta
@@ -414,7 +414,7 @@ if ($id <= 0) {
     }
 
 </style>
-```
+
 
 </head>
 
@@ -422,7 +422,7 @@ if ($id <= 0) {
 
 <header class="navbar">
 
-```
+
 <div class="navbar-content">
 
 
@@ -463,13 +463,13 @@ if ($id <= 0) {
 
 
 </div>
-```
+
 
 </header>
 
 <main class="main">
 
-```
+
 <div class="container">
 
 
@@ -546,7 +546,7 @@ if ($id <= 0) {
 
 
 </div>
-```
+
 
 </main>
 

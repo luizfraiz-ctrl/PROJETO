@@ -24,7 +24,7 @@ $veiculos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <head>
 
-```
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -357,7 +357,7 @@ $veiculos = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
 </style>
-```
+
 
 </head>
 
@@ -365,7 +365,7 @@ $veiculos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <header class="veiculos-navbar">
 
-```
+
 <div class="veiculos-navbar-content">
 
     <a href="dashboard.php" class="veiculos-logo">
@@ -399,13 +399,13 @@ $veiculos = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </nav>
 
 </div>
-```
+
 
 </header>
 
 <main class="veiculos-main">
 
-```
+
 <div class="veiculos-topo">
 
     <div class="veiculos-titulo-area">
@@ -555,7 +555,7 @@ $veiculos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 >
     ← Voltar para o painel
 </a>
-```
+
 
 </main>
 

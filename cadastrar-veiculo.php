@@ -48,7 +48,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-```
+
 <title>Cadastrar veículo - Park Point</title>
 
 <style>
@@ -311,7 +311,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
 </style>
-```
+
 
 </head>
 
@@ -319,7 +319,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <nav class="navbar">
 
-```
+
 <a href="dashboard.php" class="logo">
     <span class="logo-p">P</span>ARK POINT
 </a>
@@ -337,13 +337,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <a href="logout.php" class="sair">Sair</a>
 
 </div>
-```
+
 
 </nav>
 
 <main class="pagina">
 
-```
+
 <div class="conteudo">
 
     <a href="meus-veiculos.php" class="voltar">
@@ -469,7 +469,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </div>
 
 </div>
-```
+
 
 </main>
 

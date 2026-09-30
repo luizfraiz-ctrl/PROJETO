@@ -1,21 +1,71 @@
 <?php
-
 session_start();
 require_once "conexao.php";
 
 if (!isset($_SESSION["usuario_id"])) {
-    header("Location: login.php");
+    header("Location: entrar.php");
     exit;
 }
 
-$sql = "SELECT id, numero, status
-        FROM vagas
-        ORDER BY numero";
+$usuario_id = (int) $_SESSION["usuario_id"];
+$perfil = $_SESSION["perfil"] ?? "cliente";
 
-$stmt = $pdo->prepare($sql);
-$stmt->execute();
+/* Busca os estacionamentos */
+if ($perfil === "admin") {
+    $stmt = $pdo->prepare("
+        SELECT id, nome, endereco, valor_hora
+        FROM estabelecimentos
+        WHERE usuario_id = ?
+        ORDER BY nome
+    ");
+    $stmt->execute([$usuario_id]);
+} else {
+    $stmt = $pdo->query("
+        SELECT id, nome, endereco, valor_hora
+        FROM estabelecimentos
+        ORDER BY nome
+    ");
+}
 
-$vagas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$estabelecimentos = $stmt->fetchAll();
+
+/* Se não houver estacionamento */
+if (!$estabelecimentos) {
+    die("Nenhum estacionamento cadastrado.");
+}
+
+/* Escolhe o estacionamento */
+$estabelecimento_id = isset($_GET["estabelecimento"])
+    ? (int) $_GET["estabelecimento"]
+    : (int) $estabelecimentos[0]["id"];
+
+/* Procura o estacionamento selecionado */
+$estabelecimento = null;
+
+foreach ($estabelecimentos as $est) {
+    if ((int)$est["id"] === $estabelecimento_id) {
+        $estabelecimento = $est;
+        break;
+    }
+}
+
+/* Se o ID não existir, usa o primeiro */
+if (!$estabelecimento) {
+    $estabelecimento = $estabelecimentos[0];
+    $estabelecimento_id = (int)$estabelecimento["id"];
+}
+
+/* Busca as vagas */
+$stmt = $pdo->prepare("
+    SELECT id, numero, status
+    FROM vagas
+    WHERE estabelecimento_id = ?
+    ORDER BY numero
+");
+
+$stmt->execute([$estabelecimento_id]);
+
+$vagas = $stmt->fetchAll();
 
 ?>
 
@@ -25,329 +75,405 @@ $vagas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <head>
 
-```
 <meta charset="UTF-8">
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Vagas - Park Point</title>
 
-<link rel="stylesheet" href="style.css">
-
 <style>
 
-    .parking-page {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 40px 25px;
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f7fb;
+    color: #172033;
+}
+
+nav {
+    height: 70px;
+    background: #101827;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+}
+
+.logo {
+    color: white;
+    text-decoration: none;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.logo-p {
+    color: #00aaff;
+}
+
+.voltar {
+    color: white;
+    text-decoration: none;
+}
+
+.voltar:hover {
+    color: #00aaff;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.subtitulo {
+    text-align: center;
+    color: #667085;
+    margin-bottom: 30px;
+}
+
+/* ESTACIONAMENTOS */
+
+.estabelecimentos {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+}
+
+.estabelecimento {
+    display: block;
+    padding: 14px 22px;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    color: #172033;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.estabelecimento:hover {
+    border-color: #00aaff;
+    color: #00aaff;
+}
+
+.estabelecimento.ativo {
+    background: #00aaff;
+    border-color: #00aaff;
+    color: white;
+}
+
+/* INFORMAÇÕES */
+
+.info {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 5px 20px rgba(0,0,0,.06);
+}
+
+.info h2 {
+    margin-top: 0;
+}
+
+.info p {
+    color: #667085;
+}
+
+/* LEGENDA */
+
+.legenda {
+    display: flex;
+    justify-content: center;
+    gap: 25px;
+    margin: 25px 0;
+}
+
+.legenda-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bolinha {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+}
+
+.bolinha.verde {
+    background: #16a34a;
+}
+
+.bolinha.vermelha {
+    background: #dc2626;
+}
+
+/* ESTACIONAMENTO */
+
+.estacionamento {
+    background: #172033;
+    padding: 35px;
+    border-radius: 20px;
+    max-width: 850px;
+    margin: auto;
+}
+
+.entrada {
+    text-align: center;
+    color: white;
+    font-weight: bold;
+    margin-bottom: 30px;
+}
+
+/* VAGAS */
+
+.vagas {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+}
+
+/* LINK DA VAGA */
+
+.vaga {
+    min-height: 120px;
+    border-radius: 14px;
+    color: white;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    font-weight: bold;
+}
+
+.vaga.livre {
+    background: #16a34a;
+    cursor: pointer;
+    transition: .2s;
+}
+
+.vaga.livre:hover {
+    background: #15803d;
+    transform: translateY(-4px);
+}
+
+.vaga.ocupada {
+    background: #dc2626;
+}
+
+.numero {
+    font-size: 30px;
+}
+
+.status {
+    margin-top: 8px;
+    font-size: 12px;
+    text-align: center;
+}
+
+.mensagem {
+    text-align: center;
+    color: white;
+    padding: 30px;
+}
+
+@media (max-width: 700px) {
+
+    .vagas {
+        grid-template-columns: repeat(2, 1fr);
     }
 
-    .parking-header {
-        margin-bottom: 25px;
+    nav {
+        padding: 0 20px;
     }
 
-    .parking-header h1 {
-        margin-bottom: 8px;
+    .estacionamento {
+        padding: 20px;
     }
 
-    .parking-header p {
-        opacity: 0.7;
-    }
-
-    .parking-legend {
-        display: flex;
-        gap: 25px;
-        margin-bottom: 25px;
-        flex-wrap: wrap;
-    }
-
-    .legend-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .legend-dot {
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        display: inline-block;
-    }
-
-    .dot-free {
-        background: #35b86b;
-    }
-
-    .dot-busy {
-        background: #e05252;
-    }
-
-    .parking-area {
-        background: #202124;
-        border-radius: 24px;
-        padding: 30px;
-        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
-    }
-
-    .parking-entrance {
-        color: white;
-        text-align: center;
-        font-weight: bold;
-        padding: 15px;
-        border-bottom: 2px dashed #777;
-        margin-bottom: 30px;
-    }
-
-    .parking-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 18px;
-    }
-
-    .parking-space {
-        min-height: 145px;
-        border-radius: 16px;
-        padding: 18px;
-        text-align: center;
-        box-sizing: border-box;
-        transition: transform 0.25s ease;
-    }
-
-    .parking-space.free {
-        background: #ecfff3;
-        border: 2px solid #35b86b;
-    }
-
-    .parking-space.busy {
-        background: #fff0f0;
-        border: 2px solid #e05252;
-        opacity: 0.8;
-    }
-
-    .parking-space.free:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(53, 184, 107, 0.25);
-    }
-
-    .space-number {
-        font-size: 32px;
-        font-weight: bold;
-        margin-bottom: 6px;
-    }
-
-    .space-status {
-        font-size: 13px;
-        font-weight: bold;
-        margin-bottom: 15px;
-    }
-
-    .free .space-status {
-        color: #239653;
-    }
-
-    .busy .space-status {
-        color: #c83f3f;
-    }
-
-    .reserve-button {
-        display: inline-block;
-        padding: 9px 16px;
-        border-radius: 8px;
-        background: #222;
-        color: white;
-        text-decoration: none;
-        font-size: 13px;
-        transition: transform 0.2s ease;
-    }
-
-    .reserve-button:hover {
-        transform: scale(1.05);
-    }
-
-    .disabled-button {
-        display: inline-block;
-        padding: 9px 16px;
-        border-radius: 8px;
-        background: #999;
-        color: white;
-        font-size: 13px;
-    }
-
-    @media (max-width: 800px) {
-
-        .parking-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-    }
-
-    @media (max-width: 500px) {
-
-        .parking-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .parking-area {
-            padding: 18px;
-        }
-
-    }
+}
 
 </style>
-```
 
 </head>
 
 <body>
 
-<header class="navbar">
+<nav>
 
 ```
-<div class="navbar-content">
+<a href="dashboard.php" class="logo">
+    <span class="logo-p">P</span>ARK POINT
+</a>
 
-    <a href="dashboard.php" class="logo">
+<a href="dashboard.php" class="voltar">
+    ← Voltar
+</a>
+```
 
-        <div class="logo-icon">
-            P
-        </div>
+</nav>
 
-        Park <span>Point</span>
+<div class="container">
 
-    </a>
+```
+<h1>Encontre sua vaga 🅿️</h1>
 
-    <nav class="nav-menu">
+<p class="subtitulo">
+    Escolha um estacionamento e uma vaga disponível.
+</p>
 
-        <a href="dashboard.php">
-            Início
+
+<!-- ESTACIONAMENTOS -->
+
+<div class="estabelecimentos">
+
+    <?php foreach ($estabelecimentos as $est): ?>
+
+        <a
+            href="vagas.php?estabelecimento=<?= (int)$est["id"] ?>"
+            class="estabelecimento
+            <?= ((int)$est["id"] === $estabelecimento_id) ? "ativo" : "" ?>"
+        >
+
+            <?= htmlspecialchars($est["nome"]) ?>
+
         </a>
 
-        <a href="vagas.php">
-            Vagas
-        </a>
-
-        <a href="minhas-reservas.php">
-            Minhas Reservas
-        </a>
-
-        <a href="historico.php">
-            Histórico
-        </a>
-
-        <a href="logout.php" class="btn-login">
-            Sair
-        </a>
-
-    </nav>
+    <?php endforeach; ?>
 
 </div>
-```
 
-</header>
 
-<main class="parking-page">
+<!-- INFORMAÇÕES -->
 
-```
-<div class="parking-header">
+<div class="info">
 
-    <h1>
-        Encontre sua vaga 🅿️
-    </h1>
+    <h2>
+        <?= htmlspecialchars($estabelecimento["nome"]) ?>
+    </h2>
 
     <p>
-        Escolha uma vaga disponível no estacionamento.
+        📍 <?= htmlspecialchars($estabelecimento["endereco"]) ?>
+    </p>
+
+    <p>
+        💰 R$
+        <?= number_format(
+            $estabelecimento["valor_hora"],
+            2,
+            ",",
+            "."
+        ) ?>
+        por hora
     </p>
 
 </div>
 
 
-<div class="parking-legend">
+<!-- LEGENDA -->
 
-    <div class="legend-item">
+<div class="legenda">
 
-        <span class="legend-dot dot-free"></span>
+    <div class="legenda-item">
 
-        Vaga livre
+        <span class="bolinha verde"></span>
+
+        Livre
 
     </div>
 
-    <div class="legend-item">
+    <div class="legenda-item">
 
-        <span class="legend-dot dot-busy"></span>
+        <span class="bolinha vermelha"></span>
 
-        Vaga ocupada
+        Ocupada
 
     </div>
 
 </div>
 
 
-<section class="parking-area">
+<!-- VAGAS -->
 
-    <div class="parking-entrance">
-        🚘 ENTRADA / SAÍDA
+<div class="estacionamento">
+
+    <div class="entrada">
+        ENTRADA / SAÍDA
     </div>
 
+    <?php if (!$vagas): ?>
 
-    <div class="parking-grid">
+        <div class="mensagem">
 
-        <?php foreach ($vagas as $vaga): ?>
+            Nenhuma vaga cadastrada neste estacionamento.
 
-            <?php
+        </div>
 
-            $livre = $vaga["status"] === "livre";
+    <?php else: ?>
 
-            ?>
+        <div class="vagas">
 
-            <div class="parking-space <?= $livre ? "free" : "busy" ?>">
+            <?php foreach ($vagas as $vaga): ?>
 
-                <div class="space-number">
-                    <?= htmlspecialchars($vaga["numero"]) ?>
-                </div>
+                <?php if ($vaga["status"] === "livre"): ?>
 
-                <div class="space-status">
-                    <?= $livre ? "● LIVRE" : "● OCUPADA" ?>
-                </div>
-
-                <?php if ($livre): ?>
+                    <!-- VAGA LIVRE -->
 
                     <a
-                        href="reservar.php?id=<?= $vaga["id"] ?>"
-                        class="reserve-button"
+                        href="reservar.php?id=<?= (int)$vaga["id"] ?>"
+                        class="vaga livre"
                     >
-                        Reservar vaga
+
+                        <div class="numero">
+                            <?= htmlspecialchars($vaga["numero"]) ?>
+                        </div>
+
+                        <div class="status">
+                            CLIQUE PARA RESERVAR
+                        </div>
+
                     </a>
 
                 <?php else: ?>
 
-                    <span class="disabled-button">
-                        Ocupada
-                    </span>
+                    <!-- VAGA OCUPADA -->
+
+                    <div class="vaga ocupada">
+
+                        <div class="numero">
+                            <?= htmlspecialchars($vaga["numero"]) ?>
+                        </div>
+
+                        <div class="status">
+                            OCUPADA
+                        </div>
+
+                    </div>
 
                 <?php endif; ?>
 
-            </div>
+            <?php endforeach; ?>
 
-        <?php endforeach; ?>
+        </div>
 
-    </div>
+    <?php endif; ?>
 
-</section>
+</div>
 ```
 
-</main>
-
-<footer>
-
-```
-<p>
-    © 2026 Park Point — Sistema de Estacionamento
-</p>
-```
-
-</footer>
+</div>
 
 </body>
 

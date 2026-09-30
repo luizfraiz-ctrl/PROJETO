@@ -58,7 +58,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Entrar - Park Point</title>
 
-```
+
 <style>
     * {
         box-sizing: border-box;
@@ -229,7 +229,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
 </style>
-```
+
 
 </head>
 
@@ -237,7 +237,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <div class="container">
 
-```
+
 <div class="lado-esquerdo">
     <div class="logo">PARK POINT</div>
 
@@ -304,7 +304,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </div>
 
 </div>
-```
+
 
 </div>
 

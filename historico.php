@@ -53,7 +53,7 @@ try {
 
 <head>
 
-```
+
 <meta charset="UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -533,7 +533,7 @@ try {
     }
 
 </style>
-```
+
 
 </head>
 
@@ -541,7 +541,7 @@ try {
 
 <header class="navbar">
 
-```
+
 <div class="navbar-content">
 
     <a href="dashboard.php" class="logo">
@@ -574,13 +574,13 @@ try {
     </nav>
 
 </div>
-```
+
 
 </header>
 
 <main class="main">
 
-```
+
 <div class="container">
 
 
@@ -810,7 +810,7 @@ try {
 
 
 </div>
-```
+
 
 </main>
 

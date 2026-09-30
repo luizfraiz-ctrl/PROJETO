@@ -1,8 +1,5 @@
 <?php
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
 session_start();
 
 require_once "conexao.php";
@@ -13,61 +10,77 @@ if (!isset($_SESSION["usuario_id"])) {
 }
 
 $usuario_id = (int) $_SESSION["usuario_id"];
-
 $nome = $_SESSION["usuario_nome"] ?? "Usuário";
-
-$total_veiculos = 0;
-$vagas_livres = 0;
-$vagas_ocupadas = 0;
-$reservas_ativas = 0;
-
-try {
-
-    $stmt = $pdo->prepare(
-        "SELECT COUNT(*) FROM veiculos WHERE usuario_id = ?"
-    );
-
-    $stmt->execute([$usuario_id]);
-
-    $total_veiculos = (int) $stmt->fetchColumn();
+$perfil = $_SESSION["perfil"] ?? "cliente";
 
 
-    $stmt = $pdo->query(
-        "SELECT COUNT(*) FROM vagas WHERE status = 'livre'"
-    );
+/* =========================
+   CONTAR VEÍCULOS
+========================= */
 
-    $vagas_livres = (int) $stmt->fetchColumn();
+$stmt = $pdo->prepare("
+    SELECT COUNT(*)
+    FROM veiculos
+    WHERE usuario_id = ?
+");
+
+$stmt->execute([$usuario_id]);
+
+$totalVeiculos = (int) $stmt->fetchColumn();
 
 
-    $stmt = $pdo->query(
-        "SELECT COUNT(*) FROM vagas WHERE status = 'ocupada'"
-    );
+/* =========================
+   CONTAR ESTACIONAMENTO ATIVO
+========================= */
 
-    $vagas_ocupadas = (int) $stmt->fetchColumn();
+$stmt = $pdo->prepare("
+    SELECT COUNT(*)
+    FROM estacionamentos e
+    INNER JOIN veiculos v
+        ON v.id = e.veiculo_id
+    WHERE v.usuario_id = ?
+    AND e.saida IS NULL
+");
+
+$stmt->execute([$usuario_id]);
+
+$totalAtivos = (int) $stmt->fetchColumn();
 
 
-    $stmt = $pdo->prepare(
-        "SELECT COUNT(*)
-         FROM estacionamentos e
-         INNER JOIN veiculos v ON e.veiculo_id = v.id
-         WHERE v.usuario_id = ?
-         AND e.saida IS NULL"
-    );
+/* =========================
+   BUSCAR ESTACIONAMENTO ATIVO
+========================= */
 
-    $stmt->execute([$usuario_id]);
+$stmt = $pdo->prepare("
+    SELECT
+        e.id,
+        e.entrada,
+        v.numero AS numero_vaga,
+        ve.placa,
+        ve.modelo,
+        est.nome AS estacionamento
+    FROM estacionamentos e
 
-    $reservas_ativas = (int) $stmt->fetchColumn();
+    INNER JOIN vagas v
+        ON v.id = e.vaga_id
 
-} catch (PDOException $e) {
+    INNER JOIN veiculos ve
+        ON ve.id = e.veiculo_id
 
-    die(
-        "<div style='font-family:Arial;padding:30px;color:#b91c1c;'>
-            <h2>Erro no Dashboard</h2>
-            <p>" . htmlspecialchars($e->getMessage()) . "</p>
-        </div>"
-    );
+    LEFT JOIN estabelecimentos est
+        ON est.id = v.estabelecimento_id
 
-}
+    WHERE ve.usuario_id = ?
+    AND e.saida IS NULL
+
+    ORDER BY e.id DESC
+
+    LIMIT 1
+");
+
+$stmt->execute([$usuario_id]);
+
+$ativo = $stmt->fetch(PDO::FETCH_ASSOC);
 
 ?>
 
@@ -77,7 +90,6 @@ try {
 
 <head>
 
-```
 <meta charset="UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -86,762 +98,542 @@ try {
 
 <style>
 
-    * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f7fb;
+    color: #172033;
+}
+
+
+/* NAVBAR */
+
+nav {
+    background: #101827;
+    min-height: 70px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 15px 40px;
+}
+
+.logo {
+    color: white;
+    text-decoration: none;
+
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.logo-p {
+    color: #00aaff;
+}
+
+.menu {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+
+    flex-wrap: wrap;
+}
+
+.menu a {
+    color: white;
+    text-decoration: none;
+
+    font-size: 14px;
+
+    transition: .2s;
+}
+
+.menu a:hover {
+    color: #00aaff;
+}
+
+.menu .sair {
+    color: #ff7070;
+}
+
+
+/* CONTAINER */
+
+.container {
+    max-width: 1100px;
+
+    margin: 45px auto;
+
+    padding: 0 20px;
+}
+
+
+/* TITULO */
+
+.bem-vindo h1 {
+    margin: 0 0 8px;
+}
+
+.bem-vindo p {
+    color: #667085;
+
+    margin-bottom: 35px;
+}
+
+
+/* CARDS */
+
+.cards {
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 20px;
+
+    margin-bottom: 30px;
+}
+
+.card {
+    background: white;
+
+    padding: 25px;
+
+    border-radius: 16px;
+
+    box-shadow: 0 5px 20px rgba(0,0,0,.06);
+}
+
+.card span {
+    color: #667085;
+
+    font-size: 14px;
+}
+
+.card strong {
+    display: block;
+
+    font-size: 35px;
+
+    color: #00aaff;
+
+    margin-top: 10px;
+}
+
+
+/* ESTACIONAMENTO ATIVO */
+
+.ativo {
+    background: white;
+
+    border-radius: 16px;
+
+    padding: 30px;
+
+    margin-bottom: 30px;
+
+    box-shadow: 0 5px 20px rgba(0,0,0,.06);
+}
+
+.ativo h2 {
+    margin-top: 0;
+}
+
+.informacoes {
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 15px;
+
+    margin-top: 20px;
+}
+
+.info {
+    background: #f4f7fb;
+
+    padding: 15px;
+
+    border-radius: 10px;
+}
+
+.info small {
+    display: block;
+
+    color: #667085;
+
+    margin-bottom: 5px;
+}
+
+.info strong {
+    font-size: 16px;
+}
+
+
+/* ACESSO */
+
+.acesso {
+    background: white;
+
+    border-radius: 16px;
+
+    padding: 30px;
+
+    box-shadow: 0 5px 20px rgba(0,0,0,.06);
+}
+
+.acesso h2 {
+    margin-top: 0;
+}
+
+.botoes {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 15px;
+}
+
+.botao {
+    display: inline-block;
+
+    background: #00aaff;
+
+    color: white;
+
+    text-decoration: none;
+
+    padding: 14px 20px;
+
+    border-radius: 10px;
+
+    font-weight: bold;
+
+    transition: .2s;
+}
+
+.botao:hover {
+    background: #008dcc;
+
+    transform: translateY(-2px);
+}
+
+.botao.escuro {
+    background: #172033;
+}
+
+.botao.escuro:hover {
+    background: #26344d;
+}
+
+
+/* RESPONSIVO */
+
+@media (max-width: 800px) {
+
+    nav {
+        flex-direction: column;
+
+        gap: 15px;
     }
 
-    html,
-    body {
-        width: 100%;
-        min-height: 100%;
-    }
-
-    body {
-        font-family: Arial, Helvetica, sans-serif;
-        background: #f3f6fa;
-        color: #172033;
-    }
-
-    a {
-        text-decoration: none;
-    }
-
-
-    /* MENU */
-
-    .pp-menu {
-        width: 100%;
-        background: #111827;
-        min-height: 68px;
-    }
-
-    .pp-menu-content {
-        width: 100%;
-        min-height: 68px;
-        padding: 0 32px;
-
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .pp-logo {
-        color: white;
-        font-size: 24px;
-        font-weight: 800;
-    }
-
-    .pp-logo span {
-        color: #60a5fa;
-    }
-
-    .pp-nav {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-    .pp-nav a {
-        color: #dbe4ef;
-        font-size: 14px;
-        font-weight: 600;
-        padding: 10px 13px;
-        border-radius: 8px;
-        transition: 0.2s;
-    }
-
-    .pp-nav a:hover {
-        background: #273449;
-        color: white;
-    }
-
-    .pp-nav .pp-sair {
-        background: #dc2626;
-        color: white;
-        margin-left: 5px;
-    }
-
-    .pp-nav .pp-sair:hover {
-        background: #b91c1c;
-    }
-
-
-    /* ÁREA */
-
-    .pp-main {
-        width: 100%;
-        padding: 30px 30px 45px;
-    }
-
-    .pp-content {
-        width: 100%;
-        max-width: 1550px;
-        margin: 0 auto;
-    }
-
-
-    /* VOLTAR */
-
-    .pp-back {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-
-        color: #475569;
-        font-size: 14px;
-        font-weight: 700;
-
-        padding: 8px 12px 8px 7px;
-        margin-bottom: 16px;
-
-        border-radius: 9px;
-
-        transition: 0.2s;
-    }
-
-    .pp-back:hover {
-        background: #e2e8f0;
-        color: #111827;
-        transform: translateX(-3px);
-    }
-
-    .pp-back-arrow {
-        font-size: 23px;
-    }
-
-
-    /* BANNER */
-
-    .pp-banner {
-        width: 100%;
-
-        min-height: 185px;
-
-        padding: 35px 40px;
-
-        border-radius: 20px;
-
-        background: linear-gradient(
-            135deg,
-            #111827,
-            #1e3a5f
-        );
-
-        color: white;
-
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        margin-bottom: 23px;
-
-        box-shadow:
-            0 10px 25px rgba(15, 23, 42, 0.13);
-    }
-
-    .pp-banner h1 {
-        font-size: 31px;
-        margin-bottom: 9px;
-        font-weight: 800;
-    }
-
-    .pp-banner p {
-        color: #d7e0ec;
-        font-size: 15px;
-        line-height: 1.6;
-    }
-
-    .pp-banner-icon {
-        font-size: 75px;
-        padding-right: 20px;
-    }
-
-
-    /* ESTATÍSTICAS */
-
-    .pp-stats {
-        width: 100%;
-
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-
-        gap: 18px;
-
-        margin-bottom: 28px;
-    }
-
-    .pp-stat {
-        background: white;
-
-        border: 1px solid #e2e8f0;
-
-        border-radius: 16px;
-
-        padding: 22px;
-
-        display: flex;
-        align-items: center;
-        gap: 16px;
-
-        box-shadow:
-            0 5px 16px rgba(15, 23, 42, 0.05);
-
-        transition: 0.2s;
-    }
-
-    .pp-stat:hover {
-        transform: translateY(-3px);
-    }
-
-    .pp-stat-icon {
-        width: 52px;
-        height: 52px;
-
-        flex-shrink: 0;
-
-        border-radius: 14px;
-
-        background: #eff6ff;
-
-        display: flex;
-        align-items: center;
+    .menu {
         justify-content: center;
-
-        font-size: 24px;
     }
 
-    .pp-stat-label {
-        color: #64748b;
+}
 
-        font-size: 13px;
 
-        font-weight: 700;
+@media (max-width: 600px) {
 
-        margin-bottom: 4px;
+    .cards {
+        grid-template-columns: 1fr;
     }
 
-    .pp-stat-number {
-        color: #111827;
-
-        font-size: 30px;
-
-        font-weight: 800;
+    .informacoes {
+        grid-template-columns: 1fr;
     }
 
-
-    /* TÍTULO */
-
-    .pp-title {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        margin-bottom: 16px;
-    }
-
-    .pp-title h2 {
-        font-size: 22px;
-        color: #111827;
-    }
-
-    .pp-title p {
-        color: #64748b;
-        font-size: 13px;
-    }
-
-
-    /* CARDS */
-
-    .pp-actions {
-        width: 100%;
-
-        display: grid;
-
-        grid-template-columns: repeat(3, 1fr);
-
-        gap: 18px;
-    }
-
-    .pp-card {
-        min-height: 130px;
-
-        background: white;
-
-        border: 1px solid #e2e8f0;
-
-        border-radius: 16px;
-
-        padding: 21px;
-
-        display: flex;
-        align-items: center;
-
-        gap: 16px;
-
-        color: #111827;
-
-        box-shadow:
-            0 5px 16px rgba(15, 23, 42, 0.05);
-
-        transition: 0.2s;
-    }
-
-    .pp-card:hover {
-        transform: translateY(-4px);
-
-        border-color: #bfdbfe;
-
-        box-shadow:
-            0 12px 27px rgba(15, 23, 42, 0.10);
-    }
-
-    .pp-card-icon {
-        width: 55px;
-        height: 55px;
-
-        flex-shrink: 0;
-
-        border-radius: 14px;
-
-        background: #f1f5f9;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        font-size: 26px;
-
-        transition: 0.2s;
-    }
-
-    .pp-card:hover .pp-card-icon {
-        background: #dbeafe;
-        transform: scale(1.05);
-    }
-
-    .pp-card-content {
-        flex: 1;
-    }
-
-    .pp-card-title {
-        font-size: 16px;
-        font-weight: 800;
-        margin-bottom: 5px;
-    }
-
-    .pp-card-description {
-        color: #64748b;
-        font-size: 13px;
-        line-height: 1.4;
-    }
-
-    .pp-card-arrow {
-        color: #94a3b8;
-        font-size: 22px;
-        transition: 0.2s;
-    }
-
-    .pp-card:hover .pp-card-arrow {
-        color: #2563eb;
-        transform: translateX(4px);
-    }
-
-
-    /* RESPONSIVO */
-
-    @media (max-width: 950px) {
-
-        .pp-actions {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-    }
-
-
-    @media (max-width: 750px) {
-
-        .pp-menu-content {
-            padding: 14px 15px;
-
-            flex-direction: column;
-
-            gap: 12px;
-        }
-
-        .pp-nav {
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .pp-main {
-            padding: 18px 15px 35px;
-        }
-
-        .pp-stats {
-            grid-template-columns: 1fr;
-        }
-
-        .pp-actions {
-            grid-template-columns: 1fr;
-        }
-
-        .pp-banner {
-            padding: 28px 23px;
-        }
-
-        .pp-banner h1 {
-            font-size: 25px;
-        }
-
-        .pp-banner-icon {
-            display: none;
-        }
-
-        .pp-title p {
-            display: none;
-        }
-
-    }
+}
 
 </style>
-```
 
 </head>
 
 <body>
 
-<header class="pp-menu">
+<!-- NAVBAR -->
+
+<nav>
 
 ```
-<div class="pp-menu-content">
+<a href="dashboard.php" class="logo">
 
-    <a href="dashboard.php" class="pp-logo">
-        Park <span>Point</span>
+    <span class="logo-p">P</span>ARK POINT
+
+</a>
+
+
+<div class="menu">
+
+    <a href="dashboard.php">
+        Início
     </a>
 
-    <nav class="pp-nav">
+    <a href="vagas.php">
+        Vagas
+    </a>
 
-        <a href="dashboard.php">
-            Início
+    <a href="meus-veiculos.php">
+        Meus veículos
+    </a>
+
+    <a href="minhas-reservas.php">
+        Minhas reservas
+    </a>
+
+    <a href="historico.php">
+        Histórico
+    </a>
+
+    <?php if ($perfil === "admin"): ?>
+
+        <a href="admin.php">
+            Administração
         </a>
 
-        <a href="vagas.php">
-            Vagas
+    <?php endif; ?>
+
+    <?php if ($perfil === "funcionario"): ?>
+
+        <a href="funcionario.php">
+            Funcionário
         </a>
 
-        <a href="minhas-reservas.php">
-            Minhas Reservas
-        </a>
+    <?php endif; ?>
 
-        <a href="historico.php">
-            Histórico
-        </a>
-
-        <a href="logout.php" class="pp-sair">
-            Sair
-        </a>
-
-    </nav>
+    <a href="logout.php" class="sair">
+        Sair
+    </a>
 
 </div>
 ```
 
-</header>
+</nav>
 
-<main class="pp-main">
+<!-- CONTEÚDO -->
+
+<div class="container">
 
 ```
-<div class="pp-content">
+<!-- BEM-VINDO -->
+
+<div class="bem-vindo">
+
+    <h1>
+
+        Olá, <?= htmlspecialchars($nome) ?>! 👋
+
+    </h1>
+
+    <p>
+
+        Bem-vindo ao seu painel do Park Point.
+
+    </p>
+
+</div>
 
 
-    <!-- BOTÃO VOLTAR CORRIGIDO -->
+<!-- CARDS -->
 
-    <a href="index.php" class="pp-back">
+<div class="cards">
 
-        <span class="pp-back-arrow">
-            ←
+
+    <div class="card">
+
+        <span>
+            Meus veículos
         </span>
 
-        Voltar
+        <strong>
 
-    </a>
+            <?= $totalVeiculos ?>
 
-
-    <!-- BANNER -->
-
-    <section class="pp-banner">
-
-        <div>
-
-            <h1>
-                Olá, <?php echo htmlspecialchars($nome); ?>! 👋
-            </h1>
-
-            <p>
-                Bem-vindo ao Park Point.
-                Gerencie seus veículos, consulte vagas
-                e acompanhe suas reservas.
-            </p>
-
-        </div>
-
-        <div class="pp-banner-icon">
-            🅿️
-        </div>
-
-    </section>
-
-
-    <!-- ESTATÍSTICAS -->
-
-    <section class="pp-stats">
-
-
-        <div class="pp-stat">
-
-            <div class="pp-stat-icon">
-                🚗
-            </div>
-
-            <div>
-
-                <div class="pp-stat-label">
-                    Meus veículos
-                </div>
-
-                <div class="pp-stat-number">
-                    <?php echo $total_veiculos; ?>
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="pp-stat">
-
-            <div class="pp-stat-icon">
-                🟢
-            </div>
-
-            <div>
-
-                <div class="pp-stat-label">
-                    Vagas disponíveis
-                </div>
-
-                <div class="pp-stat-number">
-                    <?php echo $vagas_livres; ?>
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="pp-stat">
-
-            <div class="pp-stat-icon">
-                🔴
-            </div>
-
-            <div>
-
-                <div class="pp-stat-label">
-                    Vagas ocupadas
-                </div>
-
-                <div class="pp-stat-number">
-                    <?php echo $vagas_ocupadas; ?>
-                </div>
-
-            </div>
-
-        </div>
-
-
-    </section>
-
-
-    <!-- TÍTULO -->
-
-    <div class="pp-title">
-
-        <h2>
-            Acesso rápido
-        </h2>
-
-        <p>
-            Escolha uma opção para continuar
-        </p>
+        </strong>
 
     </div>
 
 
-    <!-- CARDS -->
+    <div class="card">
 
-    <section class="pp-actions">
+        <span>
+            Estacionamento ativo
+        </span>
+
+        <strong>
+
+            <?= $totalAtivos ?>
+
+        </strong>
+
+    </div>
 
 
-        <a href="meus-veiculos.php" class="pp-card">
+</div>
 
-            <div class="pp-card-icon">
-                🚗
+
+<!-- ESTACIONAMENTO ATIVO -->
+
+<?php if ($ativo): ?>
+
+    <div class="ativo">
+
+        <h2>
+            🚗 Estacionamento atual
+        </h2>
+
+
+        <div class="informacoes">
+
+
+            <div class="info">
+
+                <small>
+                    Veículo
+                </small>
+
+                <strong>
+
+                    <?= htmlspecialchars($ativo["placa"]) ?>
+
+                    <?php if (!empty($ativo["modelo"])): ?>
+
+                        -
+                        <?= htmlspecialchars($ativo["modelo"]) ?>
+
+                    <?php endif; ?>
+
+                </strong>
+
             </div>
 
-            <div class="pp-card-content">
 
-                <div class="pp-card-title">
-                    Meus veículos
-                </div>
+            <div class="info">
 
-                <div class="pp-card-description">
-                    Consulte e gerencie seus veículos cadastrados.
-                </div>
+                <small>
+                    Vaga
+                </small>
+
+                <strong>
+
+                    <?= htmlspecialchars($ativo["numero_vaga"]) ?>
+
+                </strong>
 
             </div>
 
-            <div class="pp-card-arrow">
-                →
+
+            <div class="info">
+
+                <small>
+                    Estacionamento
+                </small>
+
+                <strong>
+
+                    <?= htmlspecialchars(
+                        $ativo["estacionamento"] ?? "Park Point"
+                    ) ?>
+
+                </strong>
+
             </div>
+
+
+            <div class="info">
+
+                <small>
+                    Entrada
+                </small>
+
+                <strong>
+
+                    <?= date(
+                        "d/m/Y H:i",
+                        strtotime($ativo["entrada"])
+                    ) ?>
+
+                </strong>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+<?php endif; ?>
+
+
+<!-- ACESSO RÁPIDO -->
+
+<div class="acesso">
+
+    <h2>
+        Acesso rápido
+    </h2>
+
+
+    <div class="botoes">
+
+
+        <a href="vagas.php" class="botao">
+
+            🅿️ Encontrar vaga
 
         </a>
 
 
-        <a href="vagas.php" class="pp-card">
+        <a
+            href="meus-veiculos.php"
+            class="botao escuro"
+        >
 
-            <div class="pp-card-icon">
-                🅿️
-            </div>
-
-            <div class="pp-card-content">
-
-                <div class="pp-card-title">
-                    Encontrar uma vaga
-                </div>
-
-                <div class="pp-card-description">
-                    Veja as vagas livres e ocupadas.
-                </div>
-
-            </div>
-
-            <div class="pp-card-arrow">
-                →
-            </div>
+            🚗 Meus veículos
 
         </a>
 
 
-        <a href="minhas-reservas.php" class="pp-card">
+        <a
+            href="minhas-reservas.php"
+            class="botao escuro"
+        >
 
-            <div class="pp-card-icon">
-                📅
-            </div>
-
-            <div class="pp-card-content">
-
-                <div class="pp-card-title">
-                    Minhas reservas
-                </div>
-
-                <div class="pp-card-description">
-                    Acompanhe suas reservas atuais.
-                </div>
-
-            </div>
-
-            <div class="pp-card-arrow">
-                →
-            </div>
+            📋 Minhas reservas
 
         </a>
 
 
-        <a href="historico.php" class="pp-card">
+        <a
+            href="historico.php"
+            class="botao escuro"
+        >
 
-            <div class="pp-card-icon">
-                🕘
-            </div>
-
-            <div class="pp-card-content">
-
-                <div class="pp-card-title">
-                    Histórico
-                </div>
-
-                <div class="pp-card-description">
-                    Consulte seus estacionamentos anteriores.
-                </div>
-
-            </div>
-
-            <div class="pp-card-arrow">
-                →
-            </div>
+            🕐 Histórico
 
         </a>
 
 
-        <a href="cadastrar-veiculo.php" class="pp-card">
-
-            <div class="pp-card-icon">
-                ➕
-            </div>
-
-            <div class="pp-card-content">
-
-                <div class="pp-card-title">
-                    Cadastrar veículo
-                </div>
-
-                <div class="pp-card-description">
-                    Cadastre um novo veículo no sistema.
-                </div>
-
-            </div>
-
-            <div class="pp-card-arrow">
-                →
-            </div>
-
-        </a>
-
-
-        <a href="vagas.php" class="pp-card">
-
-            <div class="pp-card-icon">
-                🎫
-            </div>
-
-            <div class="pp-card-content">
-
-                <div class="pp-card-title">
-                    Reservar vaga
-                </div>
-
-                <div class="pp-card-description">
-                    Escolha uma vaga disponível para reservar.
-                </div>
-
-            </div>
-
-            <div class="pp-card-arrow">
-                →
-            </div>
-
-        </a>
-
-
-    </section>
-
+    </div>
 
 </div>
 ```
 
-</main>
+</div>
 
 </body>
 

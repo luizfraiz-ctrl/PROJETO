@@ -196,7 +196,7 @@ try {
 
 <head>
 
-```
+
 <meta charset="UTF-8">
 
 <meta
@@ -292,7 +292,7 @@ try {
     }
 
 </style>
-```
+
 
 </head>
 
@@ -300,7 +300,7 @@ try {
 
 <header class="navbar">
 
-```
+
 <div class="navbar-content">
 
     <a
@@ -345,13 +345,13 @@ try {
     </nav>
 
 </div>
-```
+
 
 </header>
 
 <main class="contato-sucesso">
 
-```
+
 <div class="contato-box">
 
     <div class="contato-icon">
@@ -384,17 +384,17 @@ try {
     </a>
 
 </div>
-```
+
 
 </main>
 
 <footer>
 
-```
+
 <p>
     © 2026 Park Point — Sistema de Estacionamento
 </p>
-```
+
 
 </footer>
 

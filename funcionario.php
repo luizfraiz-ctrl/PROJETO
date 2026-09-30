@@ -7,166 +7,126 @@ if (!isset($_SESSION["usuario_id"])) {
     exit;
 }
 
-if (!isset($_SESSION["perfil"]) || $_SESSION["perfil"] !== "funcionario") {
+$perfil = $_SESSION["perfil"] ?? "";
+
+// Funcionário e administrador podem acessar esta área
+if ($perfil !== "funcionario" && $perfil !== "admin") {
     header("Location: dashboard.php");
     exit;
 }
 
-/* =========================
-   ESTATÍSTICAS
-========================= */
+// Verifica se veio do painel Admin
+$veioDoAdmin = ($_SESSION["navegacao_admin"] ?? false) === true;
 
-$vagasLivres = $pdo->query("
-    SELECT COUNT(*)
-    FROM vagas
-    WHERE status = 'livre'
-")->fetchColumn();
+// =========================
+// ESTATÍSTICAS DAS VAGAS
+// =========================
 
-$vagasOcupadas = $pdo->query("
-    SELECT COUNT(*)
-    FROM vagas
-    WHERE status = 'ocupada'
-")->fetchColumn();
+$stmt = $pdo->query("SELECT COUNT(*) FROM vagas WHERE status = 'livre'");
+$vagasLivres = (int) $stmt->fetchColumn();
 
-/* =========================
-   ESTACIONAMENTOS ATIVOS
-========================= */
+$stmt = $pdo->query("SELECT COUNT(*) FROM vagas WHERE status = 'ocupada'");
+$vagasOcupadas = (int) $stmt->fetchColumn();
+
+$totalVagas = $vagasLivres + $vagasOcupadas;
+
+// =========================
+// VEÍCULOS ESTACIONADOS
+// =========================
 
 $stmt = $pdo->query("
-    SELECT
+    SELECT 
         e.id,
         e.entrada,
         v.numero AS vaga,
         ve.placa,
         ve.modelo,
-        ve.cor,
-        u.nome AS usuario
+        ve.cor
     FROM estacionamentos e
     INNER JOIN vagas v ON e.vaga_id = v.id
     INNER JOIN veiculos ve ON e.veiculo_id = ve.id
-    INNER JOIN usuarios u ON ve.usuario_id = u.id
     WHERE e.saida IS NULL
-    ORDER BY e.entrada ASC
+    ORDER BY e.entrada DESC
 ");
 
-$estacionados = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$veiculosEstacionados = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-/* =========================
-   VEÍCULOS CADASTRADOS
-========================= */
+// =========================
+// TODAS AS VAGAS
+// =========================
 
 $stmt = $pdo->query("
-    SELECT
-        ve.id,
-        ve.placa,
-        ve.modelo,
-        ve.cor,
-        u.nome AS usuario
-    FROM veiculos ve
-    INNER JOIN usuarios u ON ve.usuario_id = u.id
-    ORDER BY ve.modelo ASC
-");
-
-$veiculos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-/* =========================
-   VAGAS
-========================= */
-
-$todasVagas = $pdo->query("
     SELECT id, numero, status
     FROM vagas
     ORDER BY numero
-")->fetchAll(PDO::FETCH_ASSOC);
+");
 
+$vagas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
 
-<html lang="pt-BR">
-
+<html lang="pt-br">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 ```
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Funcionário - Park Point</title>
+<title>Área do Funcionário - Park Point</title>
 
 <style>
-
     * {
+        box-sizing: border-box;
         margin: 0;
         padding: 0;
-        box-sizing: border-box;
-        font-family: Arial, sans-serif;
     }
 
     body {
-        background: #f3f6fa;
+        font-family: Arial, sans-serif;
+        background: #f4f7fb;
         color: #172033;
     }
 
-    /* NAVBAR */
-
-    nav {
-        min-height: 72px;
+    header {
         background: #07111f;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 40px;
         color: white;
+        padding: 18px 7%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
     }
 
     .logo {
-        color: white;
         text-decoration: none;
-        font-size: 25px;
-        font-weight: bold;
+        color: white;
+        font-size: 24px;
+        font-weight: 800;
     }
 
     .logo-p {
         color: #00aaff;
     }
 
-    .nav-links {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-    }
-
-    .nav-links a {
-        color: white;
-        text-decoration: none;
+    .perfil {
+        color: #b9c7d8;
         font-size: 14px;
     }
 
-    .nav-links a:hover {
-        color: #00aaff;
-    }
-
-    .logout {
-        background: #e53935;
-        padding: 10px 16px;
-        border-radius: 8px;
-    }
-
-    .logout:hover {
-        background: #c62828;
-        color: white !important;
-    }
-
-    /* CONTAINER */
-
     .container {
-        max-width: 1250px;
-        margin: auto;
-        padding: 35px 25px 60px;
+        width: 90%;
+        max-width: 1200px;
+        margin: 35px auto;
     }
 
     .topo {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
         margin-bottom: 30px;
+        flex-wrap: wrap;
     }
 
     .topo h1 {
@@ -178,24 +138,36 @@ $todasVagas = $pdo->query("
         color: #687386;
     }
 
-    /* ESTATÍSTICAS */
+    .btn-voltar {
+        display: inline-block;
+        padding: 12px 20px;
+        border-radius: 10px;
+        background: #07111f;
+        color: white;
+        text-decoration: none;
+        font-weight: bold;
+        transition: 0.2s;
+    }
 
-    .estatisticas {
+    .btn-voltar:hover {
+        background: #00aaff;
+    }
+
+    .cards {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 20px;
         margin-bottom: 30px;
     }
 
-    .estatistica {
+    .card {
         background: white;
-        border-radius: 15px;
+        border-radius: 16px;
         padding: 25px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.06);
-        border-left: 5px solid #008cff;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.07);
     }
 
-    .estatistica h3 {
+    .card h3 {
         color: #687386;
         font-size: 15px;
         margin-bottom: 10px;
@@ -206,48 +178,53 @@ $todasVagas = $pdo->query("
         font-weight: bold;
     }
 
-    /* SEÇÃO */
+    .livre {
+        color: #16a34a;
+    }
+
+    .ocupada {
+        color: #dc2626;
+    }
 
     .secao {
         background: white;
-        border-radius: 15px;
+        border-radius: 16px;
         padding: 25px;
         margin-bottom: 30px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.06);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.07);
     }
 
     .secao h2 {
-        font-size: 22px;
         margin-bottom: 20px;
     }
 
-    /* VAGAS */
-
-    .vagas {
+    .vagas-grid {
         display: grid;
-        grid-template-columns: repeat(10, 1fr);
-        gap: 10px;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 15px;
     }
 
     .vaga {
-        padding: 15px 5px;
+        border-radius: 12px;
+        padding: 20px 10px;
         text-align: center;
-        border-radius: 9px;
-        font-size: 13px;
         font-weight: bold;
     }
 
-    .vaga-livre {
-        background: #dff5e3;
-        color: #218838;
+    .vaga.livre {
+        background: #dcfce7;
+        color: #15803d;
     }
 
-    .vaga-ocupada {
-        background: #ffe0e0;
-        color: #c62828;
+    .vaga.ocupada {
+        background: #fee2e2;
+        color: #b91c1c;
     }
 
-    /* TABELA */
+    .vaga-numero {
+        font-size: 22px;
+        margin-bottom: 6px;
+    }
 
     .tabela-container {
         overflow-x: auto;
@@ -259,94 +236,83 @@ $todasVagas = $pdo->query("
         min-width: 700px;
     }
 
-    th {
-        background: #f3f6fa;
+    th,
+    td {
+        padding: 15px;
         text-align: left;
-        padding: 13px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    th {
+        color: #687386;
         font-size: 14px;
     }
 
     td {
-        padding: 14px 13px;
-        border-bottom: 1px solid #edf0f4;
         font-size: 14px;
     }
 
-    tr:hover td {
-        background: #fafcff;
+    .btn-saida {
+        display: inline-block;
+        background: #dc2626;
+        color: white;
+        text-decoration: none;
+        padding: 9px 14px;
+        border-radius: 8px;
+        font-weight: bold;
+        transition: 0.2s;
     }
 
-    /* BOTÕES */
+    .btn-saida:hover {
+        background: #b91c1c;
+    }
+
+    .vazio {
+        text-align: center;
+        padding: 25px;
+        color: #687386;
+    }
 
     .acoes {
         display: flex;
         gap: 12px;
         flex-wrap: wrap;
+        margin-top: 20px;
     }
 
-    .botao {
-        display: inline-block;
-        padding: 13px 18px;
-        border-radius: 9px;
-        background: #008cff;
-        color: white;
+    .btn {
         text-decoration: none;
+        padding: 12px 18px;
+        border-radius: 10px;
+        background: #07111f;
+        color: white;
         font-weight: bold;
+        transition: 0.2s;
     }
 
-    .botao:hover {
-        background: #0074d4;
+    .btn:hover {
+        background: #00aaff;
     }
 
-    .botao-saida {
-        background: #e53935;
-    }
-
-    .botao-saida:hover {
-        background: #c62828;
-    }
-
-    /* RESPONSIVO */
-
-    @media (max-width: 900px) {
-
-        .vagas {
-            grid-template-columns: repeat(5, 1fr);
-        }
-
-        nav {
-            padding: 0 20px;
-        }
-
-    }
-
-    @media (max-width: 600px) {
-
-        nav {
-            padding: 18px;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .nav-links {
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .estatisticas {
+    @media (max-width: 800px) {
+        .cards {
             grid-template-columns: 1fr;
         }
 
-        .vagas {
+        .vagas-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 500px) {
+        .vagas-grid {
             grid-template-columns: repeat(2, 1fr);
         }
 
-        .container {
-            padding: 25px 15px;
+        .topo h1 {
+            font-size: 26px;
         }
-
     }
-
 </style>
 ```
 
@@ -354,67 +320,59 @@ $todasVagas = $pdo->query("
 
 <body>
 
-<nav>
+<header>
+    <a href="<?php echo $veioDoAdmin ? 'admin.php' : 'dashboard.php'; ?>" class="logo">
+        <span class="logo-p">P</span>ARK POINT
+    </a>
 
 ```
-<a href="funcionario.php" class="logo">
-    <span class="logo-p">P</span>ARK POINT
-</a>
-
-<div class="nav-links">
-
-    <a href="funcionario.php">Painel</a>
-
-    <a href="vagas.php">Vagas</a>
-
-    <a href="logout.php" class="logout">Sair</a>
-
+<div class="perfil">
+    Área do <?php echo $perfil === "admin" ? "Administrador" : "Funcionário"; ?>
 </div>
 ```
 
-</nav>
+</header>
 
 <div class="container">
 
 ```
 <div class="topo">
+    <div>
+        <h1>Área do Funcionário</h1>
+        <p>Gerencie as vagas e acompanhe os veículos estacionados.</p>
+    </div>
 
-    <h1>Painel do Funcionário</h1>
-
-    <p>
-        Olá, <?= htmlspecialchars($_SESSION["usuario_nome"]) ?>.
-        Aqui você pode acompanhar o estacionamento.
-    </p>
-
+    <a href="<?php echo $veioDoAdmin ? 'admin.php' : 'dashboard.php'; ?>" class="btn-voltar">
+        ← Voltar
+    </a>
 </div>
-
 
 <!-- ESTATÍSTICAS -->
 
-<div class="estatisticas">
+<div class="cards">
 
-    <div class="estatistica">
-
-        <h3>Vagas livres</h3>
-
+    <div class="card">
+        <h3>Total de vagas</h3>
         <div class="numero">
-            <?= $vagasLivres ?>
+            <?php echo $totalVagas; ?>
         </div>
-
     </div>
 
-    <div class="estatistica">
-
-        <h3>Vagas ocupadas</h3>
-
-        <div class="numero">
-            <?= $vagasOcupadas ?>
+    <div class="card">
+        <h3>Vagas livres</h3>
+        <div class="numero livre">
+            <?php echo $vagasLivres; ?>
         </div>
+    </div>
 
+    <div class="card">
+        <h3>Vagas ocupadas</h3>
+        <div class="numero ocupada">
+            <?php echo $vagasOcupadas; ?>
+        </div>
     </div>
 
 </div>
-
 
 <!-- VAGAS -->
 
@@ -422,29 +380,51 @@ $todasVagas = $pdo->query("
 
     <h2>Status das vagas</h2>
 
-    <div class="vagas">
+    <div class="vagas-grid">
 
-        <?php foreach ($todasVagas as $vaga): ?>
+        <?php if (count($vagas) > 0): ?>
 
-            <div class="vaga
-                <?= $vaga["status"] === "livre"
-                    ? "vaga-livre"
-                    : "vaga-ocupada" ?>">
+            <?php foreach ($vagas as $vaga): ?>
 
-                Vaga <?= htmlspecialchars($vaga["numero"]) ?>
+                <div class="vaga <?php echo $vaga["status"]; ?>">
 
-                <br>
+                    <div class="vaga-numero">
+                        Vaga <?php echo htmlspecialchars($vaga["numero"]); ?>
+                    </div>
 
-                <?= ucfirst($vaga["status"]) ?>
+                    <?php if ($vaga["status"] === "livre"): ?>
+                        Livre
+                    <?php else: ?>
+                        Ocupada
+                    <?php endif; ?>
 
+                </div>
+
+            <?php endforeach; ?>
+
+        <?php else: ?>
+
+            <div class="vazio">
+                Nenhuma vaga cadastrada.
             </div>
 
-        <?php endforeach; ?>
+        <?php endif; ?>
+
+    </div>
+
+    <div class="acoes">
+
+        <a href="vagas.php" class="btn">
+            Ver vagas
+        </a>
+
+        <a href="historico.php" class="btn">
+            Ver histórico
+        </a>
 
     </div>
 
 </div>
-
 
 <!-- VEÍCULOS ESTACIONADOS -->
 
@@ -452,77 +432,57 @@ $todasVagas = $pdo->query("
 
     <h2>Veículos estacionados</h2>
 
-    <?php if (count($estacionados) === 0): ?>
-
-        <p style="color:#687386;">
-            Nenhum veículo está estacionado no momento.
-        </p>
-
-    <?php else: ?>
+    <?php if (count($veiculosEstacionados) > 0): ?>
 
         <div class="tabela-container">
 
             <table>
 
                 <thead>
-
                     <tr>
-
-                        <th>Cliente</th>
-                        <th>Veículo</th>
-                        <th>Placa</th>
-                        <th>Cor</th>
                         <th>Vaga</th>
+                        <th>Placa</th>
+                        <th>Modelo</th>
+                        <th>Cor</th>
                         <th>Entrada</th>
                         <th>Ação</th>
-
                     </tr>
-
                 </thead>
 
                 <tbody>
 
-                    <?php foreach ($estacionados as $item): ?>
+                    <?php foreach ($veiculosEstacionados as $veiculo): ?>
 
                         <tr>
 
                             <td>
-                                <?= htmlspecialchars($item["usuario"]) ?>
+                                Vaga <?php echo htmlspecialchars($veiculo["vaga"]); ?>
                             </td>
 
                             <td>
-                                <?= htmlspecialchars($item["modelo"]) ?>
+                                <?php echo htmlspecialchars($veiculo["placa"]); ?>
                             </td>
 
                             <td>
-                                <?= htmlspecialchars($item["placa"]) ?>
+                                <?php echo htmlspecialchars($veiculo["modelo"]); ?>
                             </td>
 
                             <td>
-                                <?= htmlspecialchars($item["cor"]) ?>
+                                <?php echo htmlspecialchars($veiculo["cor"]); ?>
                             </td>
 
                             <td>
-                                Vaga <?= htmlspecialchars($item["vaga"]) ?>
+                                <?php echo date("d/m/Y H:i", strtotime($veiculo["entrada"])); ?>
                             </td>
 
                             <td>
-                                <?= date(
-                                    "d/m/Y H:i",
-                                    strtotime($item["entrada"])
-                                ) ?>
-                            </td>
-
-                            <td>
-
                                 <a
-                                    href="cancelar-reserva.php?id=<?= $item["id"] ?>"
-                                    class="botao botao-saida"
+                                    href="cancelar-reserva.php?id=<?php echo $veiculo["id"]; ?>"
+                                    class="btn-saida"
                                     onclick="return confirm('Deseja registrar a saída deste veículo?');"
                                 >
                                     Registrar saída
                                 </a>
-
                             </td>
 
                         </tr>
@@ -535,86 +495,13 @@ $todasVagas = $pdo->query("
 
         </div>
 
+    <?php else: ?>
+
+        <div class="vazio">
+            Nenhum veículo está estacionado no momento.
+        </div>
+
     <?php endif; ?>
-
-</div>
-
-
-<!-- VEÍCULOS CADASTRADOS -->
-
-<div class="secao">
-
-    <h2>Veículos cadastrados</h2>
-
-    <div class="tabela-container">
-
-        <table>
-
-            <thead>
-
-                <tr>
-
-                    <th>Cliente</th>
-                    <th>Modelo</th>
-                    <th>Placa</th>
-                    <th>Cor</th>
-
-                </tr>
-
-            </thead>
-
-            <tbody>
-
-                <?php foreach ($veiculos as $veiculo): ?>
-
-                    <tr>
-
-                        <td>
-                            <?= htmlspecialchars($veiculo["usuario"]) ?>
-                        </td>
-
-                        <td>
-                            <?= htmlspecialchars($veiculo["modelo"]) ?>
-                        </td>
-
-                        <td>
-                            <?= htmlspecialchars($veiculo["placa"]) ?>
-                        </td>
-
-                        <td>
-                            <?= htmlspecialchars($veiculo["cor"]) ?>
-                        </td>
-
-                    </tr>
-
-                <?php endforeach; ?>
-
-            </tbody>
-
-        </table>
-
-    </div>
-
-</div>
-
-
-<!-- ACESSOS -->
-
-<div class="secao">
-
-    <h2>Acessos rápidos</h2>
-
-    <div class="acoes">
-
-        <a href="vagas.php" class="botao">
-            Ver vagas
-        </a>
-
-        <a href="historico.php" class="botao">
-            Ver histórico
-        </a>
-
-    </div>
 
 </div>
 ```
@@ -622,5 +509,4 @@ $todasVagas = $pdo->query("
 </div>
 
 </body>
-
 </html>
