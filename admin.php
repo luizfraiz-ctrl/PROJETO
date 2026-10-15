@@ -1,7 +1,6 @@
+```php
 <?php
-
 session_start();
-
 require_once "conexao.php";
 
 if (!isset($_SESSION["usuario_id"])) {
@@ -17,54 +16,30 @@ if ($perfil !== "admin") {
     exit;
 }
 
-/*
- * Marca que o administrador está navegando
- * pela área administrativa.
- */
 $_SESSION["navegacao_admin"] = true;
 
+function h($valor) {
+    return htmlspecialchars((string) ($valor ?? ""), ENT_QUOTES, "UTF-8");
+}
 
-/* =========================
-   ESTATÍSTICAS
-========================= */
+/* ESTATÍSTICAS */
+$totalUsuarios = (int) $pdo->query(
+    "SELECT COUNT(*) FROM usuarios"
+)->fetchColumn();
 
-$stmt = $pdo->query("
-    SELECT COUNT(*)
-    FROM usuarios
-");
+$totalVeiculos = (int) $pdo->query(
+    "SELECT COUNT(*) FROM veiculos"
+)->fetchColumn();
 
-$totalUsuarios = (int) $stmt->fetchColumn();
+$totalEstabelecimentos = (int) $pdo->query(
+    "SELECT COUNT(*) FROM estabelecimentos"
+)->fetchColumn();
 
+$vagasLivres = (int) $pdo->query(
+    "SELECT COUNT(*) FROM vagas WHERE status = 'livre'"
+)->fetchColumn();
 
-$stmt = $pdo->query("
-    SELECT COUNT(*)
-    FROM veiculos
-");
-
-$totalVeiculos = (int) $stmt->fetchColumn();
-
-
-$stmt = $pdo->query("
-    SELECT COUNT(*)
-    FROM estabelecimentos
-");
-
-$totalEstabelecimentos = (int) $stmt->fetchColumn();
-
-
-$stmt = $pdo->query("
-    SELECT COUNT(*)
-    FROM vagas
-    WHERE status = 'livre'
-");
-
-$vagasLivres = (int) $stmt->fetchColumn();
-
-
-/* =========================
-   ESTACIONAMENTOS
-========================= */
-
+/* ESTACIONAMENTOS */
 $stmt = $pdo->query("
     SELECT
         e.id,
@@ -75,749 +50,535 @@ $stmt = $pdo->query("
         e.total_vagas,
         COUNT(v.id) AS vagas_cadastradas,
         SUM(
-            CASE
-                WHEN v.status = 'livre' THEN 1
-                ELSE 0
-            END
+            CASE WHEN v.status = 'livre' THEN 1 ELSE 0 END
         ) AS vagas_livres
     FROM estabelecimentos e
-    LEFT JOIN vagas v
-        ON v.estabelecimento_id = e.id
+    LEFT JOIN vagas v ON v.estabelecimento_id = e.id
     GROUP BY
-        e.id,
-        e.nome,
-        e.endereco,
-        e.telefone,
-        e.valor_hora,
-        e.total_vagas
+        e.id, e.nome, e.endereco, e.telefone,
+        e.valor_hora, e.total_vagas
     ORDER BY e.id DESC
 ");
 
 $estabelecimentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
 ?>
 
 <!DOCTYPE html>
-
 <html lang="pt-BR">
-
 <head>
-
-<meta charset="UTF-8">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Administrativo - Park Point</title>
-
-<style>
-
-* {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-
-    font-family: Arial, Helvetica, sans-serif;
-
-    background: #f4f7fb;
-
-    color: #172033;
-}
-
-
-/* =========================
-   NAVBAR
-========================= */
-
-nav {
-    min-height: 70px;
-
-    background: #101827;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-between;
-
-    padding: 15px 40px;
-
-    gap: 20px;
-}
-
-.logo {
-    color: white;
-
-    text-decoration: none;
-
-    font-size: 24px;
-
-    font-weight: bold;
-
-    white-space: nowrap;
-}
-
-.logo-p {
-    color: #00aaff;
-}
-
-.menu {
-    display: flex;
-
-    align-items: center;
-
-    justify-content: flex-end;
-
-    gap: 22px;
-
-    flex-wrap: wrap;
-}
-
-.menu a {
-    color: white;
-
-    text-decoration: none;
-
-    font-size: 14px;
-
-    transition: .2s;
-}
-
-.menu a:hover {
-    color: #00aaff;
-}
-
-.menu .ativo {
-    color: #00aaff;
-}
-
-.menu .sair {
-    color: #ff7070;
-}
-
-.menu .sair:hover {
-    color: #ff3b3b;
-}
-
-
-/* =========================
-   CONTAINER
-========================= */
-
-.container {
-    max-width: 1150px;
-
-    margin: 40px auto;
-
-    padding: 0 20px;
-}
-
-
-/* =========================
-   CABEÇALHO
-========================= */
-
-.cabecalho {
-    margin-bottom: 30px;
-}
-
-.cabecalho h1 {
-    margin: 0 0 8px;
-}
-
-.cabecalho p {
-    color: #667085;
-
-    margin: 0;
-}
-
-
-/* =========================
-   ESTATÍSTICAS
-========================= */
-
-.stats {
-    display: grid;
-
-    grid-template-columns: repeat(4, 1fr);
-
-    gap: 18px;
-
-    margin-bottom: 30px;
-}
-
-.stat {
-    background: white;
-
-    border-radius: 16px;
-
-    padding: 23px;
-
-    box-shadow: 0 5px 20px rgba(0,0,0,.06);
-}
-
-.stat span {
-    display: block;
-
-    color: #667085;
-
-    font-size: 14px;
-}
-
-.stat strong {
-    display: block;
-
-    color: #00aaff;
-
-    font-size: 32px;
-
-    margin-top: 10px;
-}
-
-
-/* =========================
-   AÇÕES
-========================= */
-
-.acoes {
-    background: white;
-
-    border-radius: 16px;
-
-    padding: 25px;
-
-    margin-bottom: 30px;
-
-    box-shadow: 0 5px 20px rgba(0,0,0,.06);
-}
-
-.acoes h2 {
-    margin-top: 0;
-}
-
-.botoes {
-    display: flex;
-
-    flex-wrap: wrap;
-
-    gap: 12px;
-}
-
-.botao {
-    display: inline-block;
-
-    padding: 13px 18px;
-
-    border-radius: 10px;
-
-    background: #00aaff;
-
-    color: white;
-
-    text-decoration: none;
-
-    font-weight: bold;
-
-    transition: .2s;
-}
-
-.botao:hover {
-    background: #008dcc;
-
-    transform: translateY(-2px);
-}
-
-.botao.escuro {
-    background: #172033;
-}
-
-.botao.escuro:hover {
-    background: #26344d;
-}
-
-
-/* =========================
-   ESTACIONAMENTOS
-========================= */
-
-.secao {
-    background: white;
-
-    border-radius: 16px;
-
-    padding: 30px;
-
-    margin-bottom: 30px;
-
-    box-shadow: 0 5px 20px rgba(0,0,0,.06);
-}
-
-.secao h2 {
-    margin-top: 0;
-}
-
-.estabelecimento {
-    border: 1px solid #e4e7ec;
-
-    border-radius: 14px;
-
-    padding: 22px;
-
-    margin-top: 18px;
-
-    background: #fafbfc;
-}
-
-.estabelecimento h3 {
-    margin-top: 0;
-
-    margin-bottom: 8px;
-}
-
-.endereco {
-    color: #667085;
-
-    margin-bottom: 18px;
-}
-
-.dados {
-    display: grid;
-
-    grid-template-columns: repeat(3, 1fr);
-
-    gap: 12px;
-}
-
-.dado {
-    background: white;
-
-    border-radius: 10px;
-
-    padding: 14px;
-
-    border: 1px solid #e5e7eb;
-}
-
-.dado span {
-    display: block;
-
-    font-size: 12px;
-
-    color: #667085;
-
-    margin-bottom: 5px;
-}
-
-.dado strong {
-    font-size: 15px;
-}
-
-
-/* =========================
-   ESTADO DAS VAGAS
-========================= */
-
-.vagas-status {
-    margin-top: 18px;
-
-    display: flex;
-
-    gap: 10px;
-
-    flex-wrap: wrap;
-}
-
-.status {
-    padding: 8px 12px;
-
-    border-radius: 20px;
-
-    font-size: 13px;
-
-    font-weight: bold;
-}
-
-.status.livre {
-    background: #dcfce7;
-
-    color: #15803d;
-}
-
-.status.ocupada {
-    background: #fee2e2;
-
-    color: #b91c1c;
-}
-
-
-/* =========================
-   SEM ESTACIONAMENTO
-========================= */
-
-.vazio {
-    text-align: center;
-
-    padding: 40px 20px;
-
-    color: #667085;
-}
-
-
-/* =========================
-   RESPONSIVO
-========================= */
-
-@media (max-width: 950px) {
-
-    .stats {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    nav {
-        flex-direction: column;
-
-        align-items: center;
-    }
-
-    .menu {
-        justify-content: center;
-    }
-
-}
-
-@media (max-width: 650px) {
-
-    .stats {
-        grid-template-columns: 1fr;
-    }
-
-    .dados {
-        grid-template-columns: 1fr;
-    }
-
-    .container {
-        margin-top: 25px;
-    }
-
-}
-
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administração | Park Point</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f7fb;
+            color: #172033;
+        }
+
+        nav {
+            background: #101827;
+            min-height: 72px;
+            padding: 16px 5%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            color: white;
+            text-decoration: none;
+            font-size: 23px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .logo-p {
+            color: #00aaff;
+        }
+
+        .menu {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .menu a {
+            color: #e5e7eb;
+            text-decoration: none;
+            font-size: 14px;
+            transition: .2s;
+        }
+
+        .menu a:hover,
+        .menu a.ativo {
+            color: #00aaff;
+        }
+
+        .menu a.sair {
+            color: #ff8585;
+        }
+
+        .container {
+            max-width: 1150px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .cabecalho {
+            margin-bottom: 25px;
+        }
+
+        .cabecalho h1 {
+            margin: 0 0 8px;
+        }
+
+        .cabecalho p {
+            color: #667085;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .secao-titulo {
+            margin: 30px 0 15px;
+            font-size: 20px;
+        }
+
+        /* SELETOR DE PAINÉIS */
+        .paineis {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .painel-link {
+            display: block;
+            background: white;
+            color: #172033;
+            text-decoration: none;
+            padding: 22px;
+            border-radius: 14px;
+            border: 1px solid #e5eaf1;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, .04);
+            transition: .2s;
+        }
+
+        .painel-link:hover {
+            border-color: #00aaff;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 22px rgba(0, 170, 255, .12);
+        }
+
+        .painel-link.atual {
+            border: 2px solid #00aaff;
+            background: #f0faff;
+        }
+
+        .painel-icone {
+            font-size: 26px;
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        .painel-link strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .painel-link p {
+            margin: 0;
+            color: #667085;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .marcador-atual {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 5px 9px;
+            border-radius: 20px;
+            color: #0077a8;
+            background: #dff5ff;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* ESTATÍSTICAS */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .stat {
+            background: white;
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, .05);
+        }
+
+        .stat span {
+            color: #667085;
+            font-size: 14px;
+        }
+
+        .stat strong {
+            display: block;
+            color: #009fe3;
+            font-size: 30px;
+            margin-top: 10px;
+        }
+
+        .acoes,
+        .secao {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, .05);
+        }
+
+        .acoes h2,
+        .secao h2 {
+            margin-top: 0;
+        }
+
+        .botoes {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .botao {
+            display: inline-block;
+            padding: 12px 17px;
+            border-radius: 9px;
+            background: #00aaff;
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            border: none;
+            transition: .2s;
+        }
+
+        .botao:hover {
+            background: #008dcc;
+            transform: translateY(-2px);
+        }
+
+        .botao.escuro {
+            background: #172033;
+        }
+
+        .botao.escuro:hover {
+            background: #30415d;
+        }
+
+        .estabelecimento {
+            border: 1px solid #e4e7ec;
+            border-radius: 13px;
+            padding: 22px;
+            margin-top: 16px;
+            background: #fafbfc;
+        }
+
+        .estabelecimento h3 {
+            margin: 0 0 10px;
+        }
+
+        .endereco {
+            color: #667085;
+            margin-bottom: 18px;
+            line-height: 1.5;
+        }
+
+        .dados {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .dado {
+            background: white;
+            border-radius: 9px;
+            padding: 14px;
+            border: 1px solid #e5e7eb;
+            overflow-wrap: anywhere;
+        }
+
+        .dado span {
+            display: block;
+            color: #667085;
+            font-size: 12px;
+            margin-bottom: 7px;
+        }
+
+        .dado strong {
+            font-size: 15px;
+        }
+
+        .vagas-status {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .status {
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .status.livre {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .status.ocupada {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .vazio {
+            text-align: center;
+            padding: 35px 15px;
+            color: #667085;
+            line-height: 1.6;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #667085;
+            font-size: 13px;
+        }
+
+        @media (max-width: 850px) {
+            .paineis {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            nav {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .menu {
+                justify-content: flex-start;
+            }
+        }
+
+        @media (max-width: 550px) {
+            .stats,
+            .dados {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                margin-top: 25px;
+            }
+
+            .acoes,
+            .secao {
+                padding: 19px;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
-<!-- =========================
-     NAVBAR
-========================= -->
-
 <nav>
-
-```
-<a href="admin.php" class="logo">
-
-    <span class="logo-p">P</span>ARK POINT
-
-</a>
-
-
-<div class="menu">
-
-    <a href="admin.php" class="ativo">
-        Administração
+    <a href="admin.php" class="logo">
+        <span class="logo-p">P</span>ARK POINT
     </a>
 
-    <a href="vagas.php">
-        Vagas
-    </a>
-
-    <a href="funcionario.php">
-        Funcionário
-    </a>
-
-    <a href="cadastro-estacionamento.php">
-        Novo estacionamento
-    </a>
-
-    <a href="dashboard.php">
-        Meu painel
-    </a>
-
-    <a href="logout.php" class="sair">
-        Sair
-    </a>
-
-</div>
-```
-
+    <div class="menu">
+        <a href="admin.php" class="ativo">Administração</a>
+        <a href="funcionario.php">Painel do funcionário</a>
+        <a href="dashboard.php">Painel do cliente</a>
+        <a href="vagas.php">Vagas</a>
+        <a href="cadastro-estacionamento.php">Novo estacionamento</a>
+        <a href="logout.php" class="sair">Sair</a>
+    </div>
 </nav>
 
-<div class="container">
+<main class="container">
 
-```
-<!-- CABEÇALHO -->
+    <header class="cabecalho">
+        <h1>Área administrativa</h1>
+        <p>
+            Bem-vindo à administração do Park Point.
+            Escolha abaixo qual área deseja acessar.
+        </p>
+    </header>
 
-<div class="cabecalho">
+    <h2 class="secao-titulo">Navegação entre painéis</h2>
 
-    <h1>
-        Área administrativa
-    </h1>
+    <div class="paineis">
 
-    <p>
-        Gerencie os estacionamentos e acompanhe o sistema Park Point.
-    </p>
-
-</div>
-
-
-<!-- ESTATÍSTICAS -->
-
-<div class="stats">
-
-
-    <div class="stat">
-
-        <span>
-            Usuários
-        </span>
-
-        <strong>
-            <?= $totalUsuarios ?>
-        </strong>
-
-    </div>
-
-
-    <div class="stat">
-
-        <span>
-            Veículos
-        </span>
-
-        <strong>
-            <?= $totalVeiculos ?>
-        </strong>
-
-    </div>
-
-
-    <div class="stat">
-
-        <span>
-            Estacionamentos
-        </span>
-
-        <strong>
-            <?= $totalEstabelecimentos ?>
-        </strong>
-
-    </div>
-
-
-    <div class="stat">
-
-        <span>
-            Vagas livres
-        </span>
-
-        <strong>
-            <?= $vagasLivres ?>
-        </strong>
-
-    </div>
-
-
-</div>
-
-
-<!-- AÇÕES -->
-
-<div class="acoes">
-
-    <h2>
-        Ações rápidas
-    </h2>
-
-
-    <div class="botoes">
-
-        <a
-            href="cadastro-estacionamento.php"
-            class="botao"
-        >
-            + Novo estacionamento
+        <a href="admin.php" class="painel-link atual">
+            <span class="painel-icone">⚙️</span>
+            <strong>Painel administrativo</strong>
+            <p>Consulte as estatísticas e acompanhe os estacionamentos cadastrados.</p>
+            <span class="marcador-atual">Você está aqui</span>
         </a>
 
-
-        <a
-            href="vagas.php"
-            class="botao escuro"
-        >
-            🅿️ Ver vagas
+        <a href="funcionario.php" class="painel-link">
+            <span class="painel-icone">🅿️</span>
+            <strong>Painel do funcionário</strong>
+            <p>Consulte as vagas, acompanhe veículos estacionados e registre saídas.</p>
         </a>
 
-
-        <a
-            href="funcionario.php"
-            class="botao escuro"
-        >
-            👨‍💼 Área do funcionário
-        </a>
-
-
-        <a
-            href="dashboard.php"
-            class="botao escuro"
-        >
-            🏠 Meu painel
+        <a href="dashboard.php" class="painel-link">
+            <span class="painel-icone">👤</span>
+            <strong>Painel do cliente</strong>
+            <p>Acesse a área de veículos, vagas, reservas e histórico.</p>
         </a>
 
     </div>
 
-</div>
+    <h2 class="secao-titulo">Resumo do sistema</h2>
 
-
-<!-- ESTACIONAMENTOS -->
-
-<div class="secao">
-
-    <h2>
-        Meus estacionamentos
-    </h2>
-
-
-    <?php if (!$estabelecimentos): ?>
-
-        <div class="vazio">
-
-            <p>
-                Você ainda não possui estacionamentos cadastrados.
-            </p>
-
-            <a
-                href="cadastro-estacionamento.php"
-                class="botao"
-            >
-                Cadastrar estacionamento
-            </a>
-
+    <div class="stats">
+        <div class="stat">
+            <span>Usuários cadastrados</span>
+            <strong><?= $totalUsuarios ?></strong>
         </div>
 
-    <?php else: ?>
+        <div class="stat">
+            <span>Veículos cadastrados</span>
+            <strong><?= $totalVeiculos ?></strong>
+        </div>
 
+        <div class="stat">
+            <span>Estacionamentos</span>
+            <strong><?= $totalEstabelecimentos ?></strong>
+        </div>
 
-        <?php foreach ($estabelecimentos as $est): ?>
+        <div class="stat">
+            <span>Vagas livres</span>
+            <strong><?= $vagasLivres ?></strong>
+        </div>
+    </div>
 
-            <?php
+    <section class="acoes">
+        <h2>Ações rápidas</h2>
 
-            $totalVagasEst = (int) $est["vagas_cadastradas"];
+        <div class="botoes">
+            <a href="cadastro-estacionamento.php" class="botao">
+                + Novo estacionamento
+            </a>
 
-            $livres = (int) ($est["vagas_livres"] ?? 0);
+            <a href="vagas.php" class="botao escuro">
+                Ver vagas
+            </a>
 
-            $ocupadas = $totalVagasEst - $livres;
+            <a href="funcionario.php" class="botao escuro">
+                Abrir painel do funcionário
+            </a>
 
-            ?>
+            <a href="dashboard.php" class="botao escuro">
+                Abrir painel do cliente
+            </a>
+        </div>
+    </section>
 
+    <section class="secao">
+        <h2>Estacionamentos cadastrados</h2>
 
-            <div class="estabelecimento">
+        <?php if (!$estabelecimentos): ?>
 
-                <h3>
-                    <?= htmlspecialchars($est["nome"]) ?>
-                </h3>
+            <div class="vazio">
+                <p>Nenhum estacionamento foi cadastrado ainda.</p>
 
-
-                <div class="endereco">
-
-                    📍
-                    <?= htmlspecialchars($est["endereco"]) ?>
-
-                </div>
-
-
-                <div class="dados">
-
-
-                    <div class="dado">
-
-                        <span>
-                            Total de vagas
-                        </span>
-
-                        <strong>
-                            <?= $totalVagasEst ?>
-                        </strong>
-
-                    </div>
-
-
-                    <div class="dado">
-
-                        <span>
-                            Valor por hora
-                        </span>
-
-                        <strong>
-
-                            R$
-                            <?= number_format(
-                                $est["valor_hora"],
-                                2,
-                                ",",
-                                "."
-                            ) ?>
-
-                        </strong>
-
-                    </div>
-
-
-                    <div class="dado">
-
-                        <span>
-                            Telefone
-                        </span>
-
-                        <strong>
-                            <?= htmlspecialchars($est["telefone"]) ?>
-                        </strong>
-
-                    </div>
-
-
-                </div>
-
-
-                <div class="vagas-status">
-
-                    <div class="status livre">
-
-                        <?= $livres ?> vagas livres
-
-                    </div>
-
-
-                    <div class="status ocupada">
-
-                        <?= $ocupadas ?> vagas ocupadas
-
-                    </div>
-
-                </div>
-
+                <a href="cadastro-estacionamento.php" class="botao">
+                    Cadastrar estacionamento
+                </a>
             </div>
 
+        <?php else: ?>
 
-        <?php endforeach; ?>
+            <?php foreach ($estabelecimentos as $est): ?>
 
+                <?php
+                $totalVagasEst = (int) $est["vagas_cadastradas"];
+                $livres = (int) ($est["vagas_livres"] ?? 0);
+                $ocupadas = max(0, $totalVagasEst - $livres);
+                ?>
 
-    <?php endif; ?>
+                <article class="estabelecimento">
+                    <h3><?= h($est["nome"]) ?></h3>
 
-</div>
-```
+                    <div class="endereco">
+                        📍 <?= h($est["endereco"]) ?>
+                    </div>
 
-</div>
+                    <div class="dados">
+                        <div class="dado">
+                            <span>Vagas cadastradas</span>
+                            <strong><?= $totalVagasEst ?></strong>
+                        </div>
+
+                        <div class="dado">
+                            <span>Valor por hora</span>
+                            <strong>
+                                R$ <?= number_format(
+                                    (float) $est["valor_hora"],
+                                    2,
+                                    ",",
+                                    "."
+                                ) ?>
+                            </strong>
+                        </div>
+
+                        <div class="dado">
+                            <span>Telefone</span>
+                            <strong><?= h($est["telefone"]) ?></strong>
+                        </div>
+                    </div>
+
+                    <div class="vagas-status">
+                        <span class="status livre">
+                            <?= $livres ?> vagas livres
+                        </span>
+
+                        <span class="status ocupada">
+                            <?= $ocupadas ?> vagas ocupadas
+                        </span>
+                    </div>
+                </article>
+
+            <?php endforeach; ?>
+
+        <?php endif; ?>
+    </section>
+
+</main>
+
+<footer>
+    Park Point — Sistema de gerenciamento de estacionamento
+</footer>
 
 </body>
-
 </html>
+```
