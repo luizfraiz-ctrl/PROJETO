@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 require_once "conexao.php";
@@ -10,7 +11,11 @@ if (!isset($_SESSION["usuario_id"])) {
 $usuario_id = (int) $_SESSION["usuario_id"];
 $perfil = $_SESSION["perfil"] ?? "cliente";
 
-/* Busca os estacionamentos */
+function h($valor) {
+    return htmlspecialchars((string) $valor, ENT_QUOTES, "UTF-8");
+}
+
+/* Busca os estacionamentos disponíveis */
 if ($perfil === "admin") {
     $stmt = $pdo->prepare("
         SELECT id, nome, endereco, valor_hora
@@ -27,454 +32,551 @@ if ($perfil === "admin") {
     ");
 }
 
-$estabelecimentos = $stmt->fetchAll();
+$estabelecimentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-/* Se não houver estacionamento */
-if (!$estabelecimentos) {
-    die("Nenhum estacionamento cadastrado.");
-}
-
-/* Escolhe o estacionamento */
-$estabelecimento_id = isset($_GET["estabelecimento"])
-    ? (int) $_GET["estabelecimento"]
-    : (int) $estabelecimentos[0]["id"];
-
-/* Procura o estacionamento selecionado */
 $estabelecimento = null;
+$estabelecimento_id = 0;
+$vagas = [];
 
-foreach ($estabelecimentos as $est) {
-    if ((int)$est["id"] === $estabelecimento_id) {
-        $estabelecimento = $est;
-        break;
+if ($estabelecimentos) {
+    $estabelecimento_id = isset($_GET["estabelecimento"])
+        ? (int) $_GET["estabelecimento"]
+        : (int) $estabelecimentos[0]["id"];
+
+    foreach ($estabelecimentos as $est) {
+        if ((int) $est["id"] === $estabelecimento_id) {
+            $estabelecimento = $est;
+            break;
+        }
     }
+
+    if (!$estabelecimento) {
+        $estabelecimento = $estabelecimentos[0];
+        $estabelecimento_id = (int) $estabelecimento["id"];
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT id, numero, status
+        FROM vagas
+        WHERE estabelecimento_id = ?
+        ORDER BY numero
+    ");
+    $stmt->execute([$estabelecimento_id]);
+    $vagas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-/* Se o ID não existir, usa o primeiro */
-if (!$estabelecimento) {
-    $estabelecimento = $estabelecimentos[0];
-    $estabelecimento_id = (int)$estabelecimento["id"];
+if ($perfil === "admin") {
+    $painel_url = "admin.php";
+    $painel_nome = "Painel administrativo";
+} elseif ($perfil === "funcionario") {
+    $painel_url = "funcionario.php";
+    $painel_nome = "Painel do funcionário";
+} else {
+    $painel_url = "dashboard.php";
+    $painel_nome = "Painel do cliente";
 }
-
-/* Busca as vagas */
-$stmt = $pdo->prepare("
-    SELECT id, numero, status
-    FROM vagas
-    WHERE estabelecimento_id = ?
-    ORDER BY numero
-");
-
-$stmt->execute([$estabelecimento_id]);
-
-$vagas = $stmt->fetchAll();
-
 ?>
-
 <!DOCTYPE html>
-
 <html lang="pt-BR">
-
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vagas | Park Point</title>
 
-<meta charset="UTF-8">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+        :root {
+            --azul: #00aaff;
+            --azul-escuro: #008bd1;
+            --navy: #101827;
+            --fundo: #f4f7fb;
+            --texto: #172033;
+            --cinza: #667085;
+            --borda: #e5eaf1;
+            --verde: #16a34a;
+            --vermelho: #dc2626;
+        }
 
-<title>Vagas - Park Point</title>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: var(--fundo);
+            color: var(--texto);
+        }
 
-<style>
+        nav {
+            min-height: 70px;
+            background: var(--navy);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 15px 5%;
+            flex-wrap: wrap;
+        }
 
-* {
-    box-sizing: border-box;
-}
+        .logo {
+            color: white;
+            text-decoration: none;
+            font-size: 23px;
+            font-weight: 800;
+            letter-spacing: .5px;
+        }
 
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f4f7fb;
-    color: #172033;
-}
+        .logo-p {
+            color: var(--azul);
+        }
 
-nav {
-    height: 70px;
-    background: #101827;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 40px;
-}
+        .menu {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
 
-.logo {
-    color: white;
-    text-decoration: none;
-    font-size: 24px;
-    font-weight: bold;
-}
+        .menu a {
+            color: #e5eaf1;
+            text-decoration: none;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: .2s;
+        }
 
-.logo-p {
-    color: #00aaff;
-}
+        .menu a:hover,
+        .menu a.ativo {
+            background: rgba(0, 170, 255, .14);
+            color: var(--azul);
+        }
 
-.voltar {
-    color: white;
-    text-decoration: none;
-}
+        .container {
+            width: min(1100px, 92%);
+            margin: 35px auto 50px;
+        }
 
-.voltar:hover {
-    color: #00aaff;
-}
+        .cabecalho {
+            margin-bottom: 28px;
+        }
 
-.container {
-    max-width: 1100px;
-    margin: 40px auto;
-    padding: 20px;
-}
+        .cabecalho h1 {
+            margin: 0 0 10px;
+            font-size: 30px;
+        }
 
-h1 {
-    text-align: center;
-    margin-bottom: 10px;
-}
+        .cabecalho p {
+            margin: 0;
+            color: var(--cinza);
+            line-height: 1.6;
+        }
 
-.subtitulo {
-    text-align: center;
-    color: #667085;
-    margin-bottom: 30px;
-}
+        .painel-seletor {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 22px 0;
+        }
 
-/* ESTACIONAMENTOS */
+        .atalho {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 11px 15px;
+            border: 1px solid var(--borda);
+            border-radius: 10px;
+            background: white;
+            color: var(--texto);
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            transition: .2s;
+        }
 
-.estabelecimentos {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 30px;
-}
+        .atalho:hover {
+            border-color: var(--azul);
+            color: var(--azul-escuro);
+            transform: translateY(-2px);
+        }
 
-.estabelecimento {
-    display: block;
-    padding: 14px 22px;
-    background: white;
-    border: 2px solid #e5e7eb;
-    border-radius: 12px;
-    color: #172033;
-    text-decoration: none;
-    font-weight: bold;
-}
+        .atalho.atual {
+            border-color: var(--azul);
+            background: #eaf8ff;
+            color: #007bb8;
+        }
 
-.estabelecimento:hover {
-    border-color: #00aaff;
-    color: #00aaff;
-}
+        .cartao {
+            background: white;
+            border: 1px solid var(--borda);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 15px rgba(16, 24, 39, .04);
+        }
 
-.estabelecimento.ativo {
-    background: #00aaff;
-    border-color: #00aaff;
-    color: white;
-}
+        .estabelecimentos {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
 
-/* INFORMAÇÕES */
+        .estabelecimento {
+            padding: 12px 16px;
+            background: white;
+            border: 1px solid var(--borda);
+            border-radius: 10px;
+            color: var(--texto);
+            text-decoration: none;
+            font-weight: bold;
+            transition: .2s;
+        }
 
-.info {
-    background: white;
-    border-radius: 16px;
-    padding: 25px;
-    margin-bottom: 25px;
-    box-shadow: 0 5px 20px rgba(0,0,0,.06);
-}
+        .estabelecimento:hover {
+            border-color: var(--azul);
+            color: var(--azul-escuro);
+        }
 
-.info h2 {
-    margin-top: 0;
-}
+        .estabelecimento.ativo {
+            background: var(--azul);
+            border-color: var(--azul);
+            color: white;
+        }
 
-.info p {
-    color: #667085;
-}
+        .detalhes h2 {
+            margin: 0 0 14px;
+        }
 
-/* LEGENDA */
+        .detalhes p {
+            margin: 9px 0;
+            color: var(--cinza);
+            line-height: 1.5;
+        }
 
-.legenda {
-    display: flex;
-    justify-content: center;
-    gap: 25px;
-    margin: 25px 0;
-}
+        .legenda {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 20px 0;
+        }
 
-.legenda-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
+        .legenda-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--cinza);
+            font-size: 14px;
+        }
 
-.bolinha {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-}
+        .bolinha {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
 
-.bolinha.verde {
-    background: #16a34a;
-}
+        .bolinha.verde {
+            background: var(--verde);
+        }
 
-.bolinha.vermelha {
-    background: #dc2626;
-}
+        .bolinha.vermelha {
+            background: var(--vermelho);
+        }
 
-/* ESTACIONAMENTO */
+        .estacionamento {
+            background: var(--navy);
+            padding: 28px;
+            border-radius: 16px;
+        }
 
-.estacionamento {
-    background: #172033;
-    padding: 35px;
-    border-radius: 20px;
-    max-width: 850px;
-    margin: auto;
-}
+        .entrada {
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            padding: 13px;
+            margin-bottom: 25px;
+            border: 1px dashed #718096;
+            border-radius: 8px;
+            letter-spacing: 1px;
+        }
 
-.entrada {
-    text-align: center;
-    color: white;
-    font-weight: bold;
-    margin-bottom: 30px;
-}
+        .vagas {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+        }
 
-/* VAGAS */
+        .vaga {
+            min-height: 115px;
+            padding: 12px;
+            border-radius: 12px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            font-weight: bold;
+        }
 
-.vagas {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 18px;
-}
+        a.vaga {
+            text-decoration: none;
+        }
 
-/* LINK DA VAGA */
+        .vaga.livre {
+            background: var(--verde);
+            transition: transform .2s, background .2s;
+        }
 
-.vaga {
-    min-height: 120px;
-    border-radius: 14px;
-    color: white;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    font-weight: bold;
-}
+        .vaga.livre:hover {
+            background: #15803d;
+            transform: translateY(-3px);
+        }
 
-.vaga.livre {
-    background: #16a34a;
-    cursor: pointer;
-    transition: .2s;
-}
+        .vaga.ocupada {
+            background: var(--vermelho);
+            cursor: not-allowed;
+        }
 
-.vaga.livre:hover {
-    background: #15803d;
-    transform: translateY(-4px);
-}
+        .numero {
+            font-size: 28px;
+        }
 
-.vaga.ocupada {
-    background: #dc2626;
-}
+        .status {
+            margin-top: 9px;
+            font-size: 11px;
+            line-height: 1.4;
+        }
 
-.numero {
-    font-size: 30px;
-}
+        .mensagem {
+            padding: 30px 15px;
+            text-align: center;
+            color: white;
+            line-height: 1.6;
+        }
 
-.status {
-    margin-top: 8px;
-    font-size: 12px;
-    text-align: center;
-}
+        .sem-estacionamento {
+            text-align: center;
+            padding: 45px 20px;
+        }
 
-.mensagem {
-    text-align: center;
-    color: white;
-    padding: 30px;
-}
+        .sem-estacionamento p {
+            color: var(--cinza);
+            line-height: 1.6;
+        }
 
-@media (max-width: 700px) {
+        .botao {
+            display: inline-block;
+            padding: 12px 18px;
+            border-radius: 9px;
+            background: var(--azul);
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            transition: .2s;
+        }
 
-    .vagas {
-        grid-template-columns: repeat(2, 1fr);
-    }
+        .botao:hover {
+            background: var(--azul-escuro);
+        }
 
-    nav {
-        padding: 0 20px;
-    }
+        footer {
+            text-align: center;
+            padding: 22px;
+            color: var(--cinza);
+            font-size: 13px;
+        }
 
-    .estacionamento {
-        padding: 20px;
-    }
+        @media (max-width: 750px) {
+            nav {
+                padding: 16px 4%;
+            }
 
-}
+            .menu {
+                width: 100%;
+            }
 
-</style>
+            .menu a {
+                padding: 9px;
+            }
 
+            .vagas {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .estacionamento {
+                padding: 18px;
+            }
+
+            .cabecalho h1 {
+                font-size: 25px;
+            }
+
+            .cartao {
+                padding: 18px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .vagas {
+                gap: 10px;
+            }
+
+            .vaga {
+                min-height: 100px;
+            }
+        }
+    </style>
 </head>
-
 <body>
 
 <nav>
+    <a href="<?= h($painel_url) ?>" class="logo">
+        <span class="logo-p">P</span>ARK POINT
+    </a>
 
-```
-<a href="dashboard.php" class="logo">
-    <span class="logo-p">P</span>ARK POINT
-</a>
+    <div class="menu">
+        <a href="<?= h($painel_url) ?>"><?= h($painel_nome) ?></a>
+        <a href="vagas.php" class="ativo">Vagas</a>
 
-<a href="dashboard.php" class="voltar">
-    ← Voltar
-</a>
-```
+        <?php if ($perfil === "admin"): ?>
+            <a href="funcionario.php">Funcionário</a>
+            <a href="cadastro-estacionamento.php">Estacionamentos</a>
+        <?php elseif ($perfil === "funcionario"): ?>
+            <a href="minhas-reservas.php">Reservas</a>
+        <?php else: ?>
+            <a href="meus-veiculos.php">Meus veículos</a>
+            <a href="minhas-reservas.php">Minhas reservas</a>
+            <a href="historico.php">Histórico</a>
+        <?php endif; ?>
 
+        <a href="logout.php">Sair</a>
+    </div>
 </nav>
 
-<div class="container">
+<main class="container">
+    <header class="cabecalho">
+        <h1>Encontre sua vaga</h1>
+        <p>Escolha um estacionamento e veja quais vagas estão disponíveis.</p>
+    </header>
 
-```
-<h1>Encontre sua vaga 🅿️</h1>
-
-<p class="subtitulo">
-    Escolha um estacionamento e uma vaga disponível.
-</p>
-
-
-<!-- ESTACIONAMENTOS -->
-
-<div class="estabelecimentos">
-
-    <?php foreach ($estabelecimentos as $est): ?>
-
-        <a
-            href="vagas.php?estabelecimento=<?= (int)$est["id"] ?>"
-            class="estabelecimento
-            <?= ((int)$est["id"] === $estabelecimento_id) ? "ativo" : "" ?>"
-        >
-
-            <?= htmlspecialchars($est["nome"]) ?>
-
+    <div class="painel-seletor">
+        <a href="<?= h($painel_url) ?>" class="atalho">
+            ← Voltar ao painel
         </a>
 
-    <?php endforeach; ?>
-
-</div>
-
-
-<!-- INFORMAÇÕES -->
-
-<div class="info">
-
-    <h2>
-        <?= htmlspecialchars($estabelecimento["nome"]) ?>
-    </h2>
-
-    <p>
-        📍 <?= htmlspecialchars($estabelecimento["endereco"]) ?>
-    </p>
-
-    <p>
-        💰 R$
-        <?= number_format(
-            $estabelecimento["valor_hora"],
-            2,
-            ",",
-            "."
-        ) ?>
-        por hora
-    </p>
-
-</div>
-
-
-<!-- LEGENDA -->
-
-<div class="legenda">
-
-    <div class="legenda-item">
-
-        <span class="bolinha verde"></span>
-
-        Livre
-
+        <?php if ($perfil === "admin"): ?>
+            <a href="funcionario.php" class="atalho">Painel do funcionário</a>
+            <a href="dashboard.php" class="atalho">Painel do cliente</a>
+        <?php elseif ($perfil === "funcionario"): ?>
+            <a href="admin.php" class="atalho">Painel administrativo</a>
+            <a href="dashboard.php" class="atalho">Painel do cliente</a>
+        <?php endif; ?>
     </div>
 
-    <div class="legenda-item">
+    <?php if (!$estabelecimentos): ?>
 
-        <span class="bolinha vermelha"></span>
+        <section class="cartao sem-estacionamento">
+            <h2>Nenhum estacionamento cadastrado</h2>
+            <p>
+                Ainda não há estacionamentos disponíveis para mostrar.
+                <?php if ($perfil === "admin"): ?>
+                    Cadastre um estacionamento para começar.
+                <?php endif; ?>
+            </p>
 
-        Ocupada
-
-    </div>
-
-</div>
-
-
-<!-- VAGAS -->
-
-<div class="estacionamento">
-
-    <div class="entrada">
-        ENTRADA / SAÍDA
-    </div>
-
-    <?php if (!$vagas): ?>
-
-        <div class="mensagem">
-
-            Nenhuma vaga cadastrada neste estacionamento.
-
-        </div>
+            <?php if ($perfil === "admin"): ?>
+                <a href="cadastro-estacionamento.php" class="botao">
+                    Cadastrar estacionamento
+                </a>
+            <?php endif; ?>
+        </section>
 
     <?php else: ?>
 
-        <div class="vagas">
+        <section class="cartao">
+            <h2>Escolha um estacionamento</h2>
 
-            <?php foreach ($vagas as $vaga): ?>
-
-                <?php if ($vaga["status"] === "livre"): ?>
-
-                    <!-- VAGA LIVRE -->
-
+            <div class="estabelecimentos">
+                <?php foreach ($estabelecimentos as $est): ?>
                     <a
-                        href="reservar.php?id=<?= (int)$vaga["id"] ?>"
-                        class="vaga livre"
+                        href="vagas.php?estabelecimento=<?= (int) $est["id"] ?>"
+                        class="estabelecimento <?= ((int) $est["id"] === $estabelecimento_id) ? "ativo" : "" ?>"
                     >
-
-                        <div class="numero">
-                            <?= htmlspecialchars($vaga["numero"]) ?>
-                        </div>
-
-                        <div class="status">
-                            CLIQUE PARA RESERVAR
-                        </div>
-
+                        <?= h($est["nome"]) ?>
                     </a>
+                <?php endforeach; ?>
+            </div>
+        </section>
 
-                <?php else: ?>
+        <section class="cartao detalhes">
+            <h2><?= h($estabelecimento["nome"]) ?></h2>
 
-                    <!-- VAGA OCUPADA -->
+            <p>📍 <?= h($estabelecimento["endereco"]) ?></p>
 
-                    <div class="vaga ocupada">
+            <p>
+                💰 R$ <?= number_format(
+                    (float) $estabelecimento["valor_hora"],
+                    2,
+                    ",",
+                    "."
+                ) ?> por hora
+            </p>
+        </section>
 
-                        <div class="numero">
-                            <?= htmlspecialchars($vaga["numero"]) ?>
-                        </div>
+        <div class="legenda">
+            <div class="legenda-item">
+                <span class="bolinha verde"></span>
+                Vaga livre
+            </div>
 
-                        <div class="status">
-                            OCUPADA
-                        </div>
-
-                    </div>
-
-                <?php endif; ?>
-
-            <?php endforeach; ?>
-
+            <div class="legenda-item">
+                <span class="bolinha vermelha"></span>
+                Vaga ocupada
+            </div>
         </div>
 
+        <section class="estacionamento">
+            <div class="entrada">ENTRADA / SAÍDA</div>
+
+            <?php if (!$vagas): ?>
+                <div class="mensagem">
+                    Nenhuma vaga cadastrada neste estacionamento.
+                </div>
+            <?php else: ?>
+                <div class="vagas">
+                    <?php foreach ($vagas as $vaga): ?>
+                        <?php if ($vaga["status"] === "livre"): ?>
+                            <a
+                                href="reservar.php?id=<?= (int) $vaga["id"] ?>"
+                                class="vaga livre"
+                                aria-label="Reservar vaga <?= h($vaga["numero"]) ?>"
+                            >
+                                <span class="numero"><?= h($vaga["numero"]) ?></span>
+                                <span class="status">CLIQUE PARA RESERVAR</span>
+                            </a>
+                        <?php else: ?>
+                            <div
+                                class="vaga ocupada"
+                                aria-label="Vaga <?= h($vaga["numero"]) ?> ocupada"
+                            >
+                                <span class="numero"><?= h($vaga["numero"]) ?></span>
+                                <span class="status">OCUPADA</span>
+                            </div>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </section>
+
     <?php endif; ?>
+</main>
 
-</div>
-```
-
-</div>
+<footer>
+    Park Point © <?= date("Y") ?> — Sistema de gerenciamento de estacionamento
+</footer>
 
 </body>
-
 </html>
+ 

@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 require_once "conexao.php";
@@ -7,464 +8,508 @@ if (!isset($_SESSION["usuario_id"])) {
     exit;
 }
 
-$usuario_id = $_SESSION["usuario_id"];
-
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     header("Location: vagas.php");
     exit;
 }
 
-$vaga_id = (int)($_POST["vaga_id"] ?? 0);
-$veiculo_id = (int)($_POST["veiculo_id"] ?? 0);
+$usuario_id = (int) $_SESSION["usuario_id"];
+$perfil = $_SESSION["perfil"] ?? "cliente";
+$nome = $_SESSION["usuario_nome"] ?? "Usuário";
 
-function paginaMensagem($titulo, $mensagem, $tipo = "erro")
-{
-    $corPrincipal = $tipo === "sucesso" ? "#19a463" : "#e53935";
-    $corFundo = $tipo === "sucesso" ? "#ecfff5" : "#fff0f0";
+function h($valor) {
+    return htmlspecialchars((string)($valor ?? ""), ENT_QUOTES, "UTF-8");
+}
 
+function paginaMensagem($titulo, $mensagem, $tipo = "erro") {
+    global $perfil, $nome;
+
+    $sucesso = ($tipo === "sucesso");
+    $corPrincipal = $sucesso ? "#16a34a" : "#dc2626";
+    $corFundo = $sucesso ? "#f0fdf4" : "#fff1f2";
     ?>
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title><?= h($titulo) ?> | Park Point</title>
 
-```
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+        <style>
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
 
-    <title><?php echo htmlspecialchars($titulo); ?> - Park Point</title>
+            body {
+                font-family: Arial, Helvetica, sans-serif;
+                background: #f4f7fb;
+                color: #172033;
+                min-height: 100vh;
+            }
 
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+            a {
+                text-decoration: none;
+            }
 
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: #f4f7fb;
-            color: #172033;
-        }
+            .navbar {
+                background: #111827;
+                padding: 0 30px;
+            }
 
-        nav {
-            height: 72px;
-            background: #101827;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 6%;
-        }
+            .navbar-content {
+                max-width: 1400px;
+                min-height: 72px;
+                margin: auto;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 20px;
+            }
 
-        .logo {
-            text-decoration: none;
-            color: white;
-            font-size: 21px;
-            font-weight: 800;
-            letter-spacing: 1px;
-        }
+            .logo {
+                color: white;
+                font-size: 23px;
+                font-weight: 800;
+            }
 
-        .logo-p {
-            color: #00aaff;
-        }
+            .logo span {
+                color: #00aaff;
+            }
 
-        .sair {
-            text-decoration: none;
-            color: white;
-            background: #00aaff;
-            padding: 10px 16px;
-            border-radius: 8px;
-        }
+            .nav {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+            }
 
-        .container {
-            width: 90%;
-            max-width: 650px;
-            margin: 80px auto;
-        }
+            .nav a {
+                color: #dbe4ef;
+                padding: 10px 12px;
+                border-radius: 8px;
+                font-size: 13px;
+                font-weight: bold;
+                transition: .2s;
+            }
 
-        .card {
-            background: white;
-            border-radius: 18px;
-            padding: 40px;
-            text-align: center;
-            box-shadow: 0 8px 30px rgba(20,35,55,.08);
-            border: 1px solid #e5ebf2;
-        }
+            .nav a:hover {
+                color: #00aaff;
+                background: #263449;
+            }
 
-        .icone {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: <?php echo $corFundo; ?>;
-            color: <?php echo $corPrincipal; ?>;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            margin: 0 auto 20px;
-        }
+            .nav .sair {
+                background: #dc2626;
+                color: white;
+            }
 
-        h1 {
-            font-size: 27px;
-            margin-bottom: 12px;
-        }
+            .nav .sair:hover {
+                background: #b91c1c;
+            }
 
-        p {
-            color: #68758a;
-            line-height: 1.6;
-        }
+            .container {
+                width: calc(100% - 30px);
+                max-width: 650px;
+                margin: 55px auto;
+            }
 
-        .botoes {
-            display: flex;
-            gap: 12px;
-            margin-top: 28px;
-        }
+            .voltar {
+                display: inline-block;
+                color: #475569;
+                font-weight: bold;
+                font-size: 14px;
+                margin-bottom: 18px;
+            }
 
-        .botao {
-            flex: 1;
-            text-decoration: none;
-            padding: 14px;
-            border-radius: 9px;
-            background: #00aaff;
-            color: white;
-            font-weight: bold;
-        }
+            .voltar:hover {
+                color: #0284c7;
+            }
 
-        .botao:hover {
-            background: #008dcc;
-        }
-
-        .botao.secundario {
-            background: #e9eef5;
-            color: #172033;
-        }
-
-        .botao.secundario:hover {
-            background: #dce4ee;
-        }
-
-        @media(max-width:600px) {
             .card {
-                padding: 28px 20px;
+                background: white;
+                border: 1px solid #e2e8f0;
+                border-radius: 18px;
+                padding: 38px;
+                text-align: center;
+                box-shadow: 0 8px 25px rgba(15, 23, 42, .06);
+            }
+
+            .icone {
+                width: 68px;
+                height: 68px;
+                margin: 0 auto 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                background: <?= $corFundo ?>;
+                color: <?= $corPrincipal ?>;
+                font-size: 32px;
+                font-weight: bold;
+            }
+
+            h1 {
+                font-size: 26px;
+                margin-bottom: 12px;
+            }
+
+            .mensagem {
+                color: #64748b;
+                line-height: 1.7;
+                font-size: 15px;
+                overflow-wrap: anywhere;
             }
 
             .botoes {
-                flex-direction: column;
+                display: flex;
+                gap: 12px;
+                margin-top: 27px;
             }
-        }
-    </style>
-</head>
 
-<body>
+            .botao {
+                flex: 1;
+                display: inline-block;
+                padding: 13px 16px;
+                border-radius: 9px;
+                background: #0284c7;
+                color: white;
+                font-size: 14px;
+                font-weight: bold;
+                transition: .2s;
+            }
 
-    <nav>
+            .botao:hover {
+                background: #0369a1;
+                transform: translateY(-2px);
+            }
 
-        <a href="dashboard.php" class="logo">
-            <span class="logo-p">P</span>ARK POINT
-        </a>
+            .botao.secundario {
+                background: #e2e8f0;
+                color: #172033;
+            }
 
-        <a href="logout.php" class="sair">
-            Sair
-        </a>
+            .botao.secundario:hover {
+                background: #cbd5e1;
+            }
 
-    </nav>
+            footer {
+                text-align: center;
+                color: #94a3b8;
+                font-size: 12px;
+                padding: 20px;
+            }
 
-    <main class="container">
+            @media (max-width: 850px) {
+                .navbar-content {
+                    padding: 15px 0;
+                    flex-direction: column;
+                }
 
-        <div class="card">
+                .nav {
+                    justify-content: center;
+                }
+            }
 
-            <div class="icone">
-                <?php echo $tipo === "sucesso" ? "✓" : "!"; ?>
-            </div>
+            @media (max-width: 500px) {
+                .navbar {
+                    padding: 0 14px;
+                }
 
-            <h1>
-                <?php echo htmlspecialchars($titulo); ?>
-            </h1>
+                .nav a {
+                    font-size: 12px;
+                    padding: 9px;
+                }
 
-            <p>
-                <?php echo htmlspecialchars($mensagem); ?>
-            </p>
+                .card {
+                    padding: 28px 20px;
+                }
 
-            <div class="botoes">
+                h1 {
+                    font-size: 23px;
+                }
 
-                <a
-                    href="vagas.php"
-                    class="botao"
-                >
-                    Ver vagas
+                .botoes {
+                    flex-direction: column;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+        <header class="navbar">
+            <div class="navbar-content">
+                <a href="dashboard.php" class="logo">
+                    <span>P</span>ARK POINT
                 </a>
 
-                <a
-                    href="dashboard.php"
-                    class="botao secundario"
-                >
-                    Voltar ao painel
-                </a>
+                <nav class="nav">
+                    <?php if ($perfil === "admin"): ?>
+                        <a href="admin.php">Admin</a>
+                    <?php endif; ?>
 
+                    <?php if ($perfil === "funcionario" || $perfil === "admin"): ?>
+                        <a href="funcionario.php">Funcionário</a>
+                    <?php endif; ?>
+
+                    <a href="dashboard.php">Início</a>
+                    <a href="vagas.php">Vagas</a>
+                    <a href="minhas-reservas.php">Minhas reservas</a>
+                    <a href="historico.php">Histórico</a>
+                    <a href="logout.php" class="sair">Sair</a>
+                </nav>
             </div>
+        </header>
 
-        </div>
+        <main class="container">
+            <a href="vagas.php" class="voltar">← Voltar para as vagas</a>
 
-    </main>
+            <section class="card">
+                <div class="icone"><?= $sucesso ? "✓" : "!" ?></div>
 
-</body>
-</html>
-<?php
-exit;
+                <h1><?= h($titulo) ?></h1>
 
+                <p class="mensagem">
+                    Olá, <?= h($nome) ?>!<br>
+                    <?= h($mensagem) ?>
+                </p>
 
+                <div class="botoes">
+                    <a href="minhas-reservas.php" class="botao">
+                        Meus estacionamentos
+                    </a>
+
+                    <a href="vagas.php" class="botao secundario">
+                        Ver vagas
+                    </a>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            © <?= date("Y") ?> Park Point — Sistema de gerenciamento de estacionamento.
+        </footer>
+    </body>
+    </html>
+    <?php
+    exit;
 }
 
-if ($vaga_id <= 0 || $veiculo_id <= 0) {
+// Valida o token de segurança enviado pelo formulário.
+$tokenSessao = $_SESSION["csrf_token"] ?? "";
+$tokenFormulario = $_POST["csrf_token"] ?? "";
 
+if (
+    !is_string($tokenSessao) ||
+    !is_string($tokenFormulario) ||
+    $tokenSessao === "" ||
+    !hash_equals($tokenSessao, $tokenFormulario)
+) {
+    paginaMensagem(
+        "Sessão de segurança expirada",
+        "Volte à lista de vagas e tente realizar a reserva novamente."
+    );
+}
 
-paginaMensagem(
-    "Dados inválidos",
-    "Não foi possível identificar a vaga ou o veículo selecionado."
+$vaga_id = filter_var(
+    $_POST["vaga_id"] ?? null,
+    FILTER_VALIDATE_INT,
+    ["options" => ["min_range" => 1]]
 );
 
+$veiculo_id = filter_var(
+    $_POST["veiculo_id"] ?? null,
+    FILTER_VALIDATE_INT,
+    ["options" => ["min_range" => 1]]
+);
 
+if ($vaga_id === false || $vaga_id === null ||
+    $veiculo_id === false || $veiculo_id === null) {
+    paginaMensagem(
+        "Dados inválidos",
+        "Não foi possível identificar a vaga ou o veículo selecionado."
+    );
 }
 
 try {
+    $pdo->beginTransaction();
 
+    /*
+     * 1. Bloqueia a linha do usuário.
+     * Isso ajuda a impedir que duas solicitações simultâneas
+     * iniciem estacionamentos para o mesmo usuário.
+     */
+    $stmt = $pdo->prepare("
+        SELECT id
+        FROM usuarios
+        WHERE id = ?
+        FOR UPDATE
+    ");
+    $stmt->execute([$usuario_id]);
 
-$pdo->beginTransaction();
+    if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
+        $pdo->rollBack();
 
-/*
- * 1. Verifica o veículo.
- */
-$stmt = $pdo->prepare("
-    SELECT
-        id,
-        placa,
-        modelo,
-        cor
-    FROM veiculos
-    WHERE id = ?
-      AND usuario_id = ?
-    LIMIT 1
-");
+        paginaMensagem(
+            "Usuário não encontrado",
+            "Entre novamente na sua conta e tente outra vez."
+        );
+    }
 
-$stmt->execute([
-    $veiculo_id,
-    $usuario_id
-]);
+    /*
+     * 2. Confirma que o veículo pertence ao usuário conectado.
+     */
+    $stmt = $pdo->prepare("
+        SELECT id, placa, modelo, cor
+        FROM veiculos
+        WHERE id = ?
+          AND usuario_id = ?
+        LIMIT 1
+    ");
+    $stmt->execute([$veiculo_id, $usuario_id]);
+    $veiculo = $stmt->fetch(PDO::FETCH_ASSOC);
 
-$veiculo = $stmt->fetch();
+    if (!$veiculo) {
+        $pdo->rollBack();
 
-if (!$veiculo) {
+        paginaMensagem(
+            "Veículo não encontrado",
+            "O veículo selecionado não pertence à sua conta."
+        );
+    }
 
-    $pdo->rollBack();
+    /*
+     * 3. Verifica se algum veículo do usuário já está estacionado.
+     */
+    $stmt = $pdo->prepare("
+        SELECT
+            est.id,
+            v.numero AS vaga_numero,
+            est.veiculo_id,
+            ve.placa
+        FROM estacionamentos est
+        INNER JOIN veiculos ve
+            ON ve.id = est.veiculo_id
+        INNER JOIN vagas v
+            ON v.id = est.vaga_id
+        WHERE ve.usuario_id = ?
+          AND est.saida IS NULL
+        LIMIT 1
+    ");
+    $stmt->execute([$usuario_id]);
+    $ativo = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    paginaMensagem(
-        "Veículo não encontrado",
-        "O veículo selecionado não pertence à sua conta."
-    );
-}
+    if ($ativo) {
+        $pdo->rollBack();
 
+        paginaMensagem(
+            "Já existe um estacionamento ativo",
+            "O veículo " . $ativo["placa"] .
+            " já está estacionado na vaga " . $ativo["vaga_numero"] .
+            ". Finalize esse estacionamento antes de iniciar outro."
+        );
+    }
 
-/*
- * 2. Verifica se o veículo já está estacionado.
- */
-$stmt = $pdo->prepare("
-    SELECT
-        e.id,
-        e.vaga_id,
-        v.numero AS vaga_numero,
-        est.nome AS estabelecimento_nome
-    FROM estacionamentos e
+    /*
+     * 4. Bloqueia a vaga e confirma sua disponibilidade.
+     */
+    $stmt = $pdo->prepare("
+        SELECT
+            v.id,
+            v.numero,
+            v.status,
+            v.estabelecimento_id,
+            est.nome AS estabelecimento_nome
+        FROM vagas v
+        INNER JOIN estabelecimentos est
+            ON est.id = v.estabelecimento_id
+        WHERE v.id = ?
+        LIMIT 1
+        FOR UPDATE
+    ");
+    $stmt->execute([$vaga_id]);
+    $vaga = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    INNER JOIN vagas v
-        ON v.id = e.vaga_id
+    if (!$vaga) {
+        $pdo->rollBack();
 
-    INNER JOIN estabelecimentos est
-        ON est.id = v.estabelecimento_id
+        paginaMensagem(
+            "Vaga não encontrada",
+            "A vaga selecionada não existe mais."
+        );
+    }
 
-    WHERE e.veiculo_id = ?
-      AND e.saida IS NULL
+    if ($vaga["status"] !== "livre") {
+        $pdo->rollBack();
 
-    LIMIT 1
+        paginaMensagem(
+            "Vaga indisponível",
+            "Esta vaga já está ocupada. Escolha outra vaga livre."
+        );
+    }
 
-    FOR UPDATE
-");
+    if (empty($vaga["estabelecimento_id"])) {
+        $pdo->rollBack();
 
-$stmt->execute([$veiculo_id]);
+        paginaMensagem(
+            "Estacionamento não identificado",
+            "Esta vaga não está vinculada a um estabelecimento válido."
+        );
+    }
 
-$estacionamentoAtivo = $stmt->fetch();
+    /*
+     * 5. Registra o estacionamento.
+     */
+    $stmt = $pdo->prepare("
+        INSERT INTO estacionamentos
+            (veiculo_id, vaga_id, entrada, saida)
+        VALUES
+            (?, ?, NOW(), NULL)
+    ");
+    $stmt->execute([$veiculo_id, $vaga_id]);
 
-if ($estacionamentoAtivo) {
+    /*
+     * 6. Marca a vaga como ocupada.
+     */
+    $stmt = $pdo->prepare("
+        UPDATE vagas
+        SET status = 'ocupada'
+        WHERE id = ?
+          AND status = 'livre'
+    ");
+    $stmt->execute([$vaga_id]);
 
-    $pdo->rollBack();
+    if ($stmt->rowCount() !== 1) {
+        $pdo->rollBack();
 
-    paginaMensagem(
-        "Veículo já estacionado",
-        "O veículo " .
-        $veiculo["placa"] .
-        " já está estacionado na vaga " .
-        $estacionamentoAtivo["vaga_numero"] .
-        " do estacionamento " .
-        $estacionamentoAtivo["estabelecimento_nome"] .
-        "."
-    );
-}
+        paginaMensagem(
+            "Vaga indisponível",
+            "Não foi possível confirmar a disponibilidade. Escolha outra vaga."
+        );
+    }
 
-
-/*
- * 3. Bloqueia a vaga enquanto verifica.
- */
-$stmt = $pdo->prepare("
-    SELECT
-        v.id,
-        v.numero,
-        v.status,
-        v.estabelecimento_id,
-        e.nome AS estabelecimento_nome
-    FROM vagas v
-
-    INNER JOIN estabelecimentos e
-        ON e.id = v.estabelecimento_id
-
-    WHERE v.id = ?
-
-    LIMIT 1
-
-    FOR UPDATE
-");
-
-$stmt->execute([$vaga_id]);
-
-$vaga = $stmt->fetch();
-
-if (!$vaga) {
-
-    $pdo->rollBack();
-
-    paginaMensagem(
-        "Vaga não encontrada",
-        "A vaga selecionada não existe."
-    );
-}
-
-
-/*
- * 4. Confirma que a vaga está livre.
- */
-if ($vaga["status"] !== "livre") {
-
-    $pdo->rollBack();
-
-    paginaMensagem(
-        "Vaga ocupada",
-        "Esta vaga acabou de ser ocupada. Escolha outra vaga."
-    );
-}
-
-
-/*
- * 5. Confirma que a vaga pertence a um estacionamento.
- */
-if (
-    empty($vaga["estabelecimento_id"]) ||
-    empty($vaga["estabelecimento_nome"])
-) {
-
-    $pdo->rollBack();
-
-    paginaMensagem(
-        "Vaga sem estacionamento",
-        "Esta vaga ainda não está vinculada a um estacionamento."
-    );
-}
-
-
-/*
- * 6. Cria o estacionamento/reserva.
- */
-$stmt = $pdo->prepare("
-    INSERT INTO estacionamentos
-    (
-        veiculo_id,
-        vaga_id,
-        entrada,
-        saida
-    )
-    VALUES
-    (
-        ?,
-        ?,
-        NOW(),
-        NULL
-    )
-");
-
-$stmt->execute([
-    $veiculo_id,
-    $vaga_id
-]);
-
-
-/*
- * 7. Atualiza o status da vaga.
- */
-$stmt = $pdo->prepare("
-    UPDATE vagas
-    SET status = 'ocupada'
-    WHERE id = ?
-      AND status = 'livre'
-");
-
-$stmt->execute([$vaga_id]);
-
-
-/*
- * Se nenhuma linha foi alterada, outra operação
- * ocupou a vaga antes da atualização.
- */
-if ($stmt->rowCount() !== 1) {
-
-    $pdo->rollBack();
+    /*
+     * 7. Confirma todas as alterações.
+     */
+    $pdo->commit();
 
     paginaMensagem(
-        "Vaga ocupada",
-        "A vaga não está mais disponível. Escolha outra."
+        "Estacionamento iniciado!",
+        "O veículo " . $veiculo["placa"] .
+        " foi registrado na vaga " . $vaga["numero"] .
+        " do estacionamento " . $vaga["estabelecimento_nome"] . ".",
+        "sucesso"
     );
-}
-
-
-/*
- * 8. Finaliza tudo.
- */
-$pdo->commit();
-
-
-paginaMensagem(
-    "Reserva realizada!",
-    "O veículo " .
-    $veiculo["placa"] .
-    " foi estacionado na vaga " .
-    $vaga["numero"] .
-    " do " .
-    $vaga["estabelecimento_nome"] .
-    ".",
-    "sucesso"
-);
-
 
 } catch (PDOException $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
 
+    error_log("Erro ao confirmar estacionamento: " . $e->getMessage());
 
-if ($pdo->inTransaction()) {
-    $pdo->rollBack();
-}
-
-paginaMensagem(
-    "Não foi possível reservar",
-    "Ocorreu um erro ao realizar a reserva. Verifique os dados e tente novamente."
-);
-
-
+    paginaMensagem(
+        "Não foi possível confirmar",
+        "Ocorreu um erro ao registrar o estacionamento. Tente novamente."
+    );
 }
 ?>

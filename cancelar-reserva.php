@@ -1,4 +1,4 @@
-```php
+
 <?php
 session_start();
 require_once "conexao.php";
@@ -9,7 +9,7 @@ if (!isset($_SESSION["usuario_id"])) {
     exit;
 }
 
-// Aceita cancelamento somente por POST.
+// Aceita somente requisições POST.
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     header("Location: minhas-reservas.php");
     exit;
@@ -19,7 +19,7 @@ $usuario_id = (int) $_SESSION["usuario_id"];
 $reserva_id = filter_input(INPUT_POST, "id", FILTER_VALIDATE_INT);
 $token = $_POST["csrf_token"] ?? "";
 
-// Valida o identificador e o token de segurança.
+// Valida o ID e o token CSRF.
 if (
     !$reserva_id ||
     !isset($_SESSION["csrf_token"]) ||
@@ -33,7 +33,8 @@ if (
 try {
     $pdo->beginTransaction();
 
-    // Confere se a reserva pertence ao usuário e continua ativa.
+    // Verifica se o estacionamento pertence ao usuário
+    // e se ainda está ativo.
     $sql = "
         SELECT e.id, e.vaga_id
         FROM estacionamentos e
@@ -54,25 +55,35 @@ try {
         exit;
     }
 
-    // Finaliza a reserva.
+    // Finaliza o estacionamento ativo.
     $stmt = $pdo->prepare("
         UPDATE estacionamentos
         SET saida = NOW()
-        WHERE id = ? AND saida IS NULL
+        WHERE id = ?
+          AND saida IS NULL
     ");
     $stmt->execute([$reserva_id]);
 
     if ($stmt->rowCount() !== 1) {
-        throw new RuntimeException("A reserva não pôde ser finalizada.");
+        throw new RuntimeException(
+            "O estacionamento não pôde ser finalizado."
+        );
     }
 
-    // Libera a vaga.
+    // Libera somente a vaga correspondente.
     $stmt = $pdo->prepare("
         UPDATE vagas
         SET status = 'livre'
         WHERE id = ?
+          AND status = 'ocupada'
     ");
     $stmt->execute([(int) $reserva["vaga_id"]]);
+
+    if ($stmt->rowCount() !== 1) {
+        throw new RuntimeException(
+            "Não foi possível liberar a vaga."
+        );
+    }
 
     $pdo->commit();
 
@@ -84,10 +95,14 @@ try {
         $pdo->rollBack();
     }
 
-    error_log("Erro ao cancelar reserva: " . $e->getMessage());
+    error_log(
+        "Erro ao cancelar estacionamento: " . $e->getMessage()
+    );
 
     http_response_code(500);
-    exit("Não foi possível cancelar a reserva. Verifique o registro de erros do PHP.");
+    exit(
+        "Não foi possível cancelar o estacionamento. "
+        . "Tente novamente."
+    );
 }
 ?>
-```

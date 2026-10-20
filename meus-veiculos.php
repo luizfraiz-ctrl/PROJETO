@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 require_once "conexao.php";
@@ -7,558 +8,538 @@ if (!isset($_SESSION["usuario_id"])) {
     exit;
 }
 
-$usuario_id = $_SESSION["usuario_id"];
+$usuario_id = (int) $_SESSION["usuario_id"];
+$perfil = $_SESSION["perfil"] ?? "cliente";
 
-$stmt = $pdo->prepare(
-    "SELECT id, placa, modelo, cor FROM veiculos WHERE usuario_id = ? ORDER BY id DESC"
-);
+function h($valor) {
+    return htmlspecialchars((string) $valor, ENT_QUOTES, "UTF-8");
+}
 
+$stmt = $pdo->prepare("
+    SELECT id, placa, modelo, cor
+    FROM veiculos
+    WHERE usuario_id = ?
+    ORDER BY id DESC
+");
 $stmt->execute([$usuario_id]);
-
 $veiculos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+if ($perfil === "admin") {
+    $painel_url = "admin.php";
+    $painel_nome = "Painel administrativo";
+} elseif ($perfil === "funcionario") {
+    $painel_url = "funcionario.php";
+    $painel_nome = "Painel do funcionário";
+} else {
+    $painel_url = "dashboard.php";
+    $painel_nome = "Painel do cliente";
+}
 ?>
-
 <!DOCTYPE html>
-
 <html lang="pt-BR">
-
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meus veículos | Park Point</title>
 
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Meus veículos - Park Point</title>
-
-<style>
-
-    * {
-        box-sizing: border-box;
-    }
-
-    body {
-        margin: 0;
-        font-family: Arial, Helvetica, sans-serif;
-        background: #f1f5f9;
-        color: #0f172a;
-    }
-
-    .veiculos-navbar {
-        width: 100%;
-        background: #0f172a;
-        color: white;
-        padding: 0 30px;
-    }
-
-    .veiculos-navbar-content {
-        max-width: 1200px;
-        height: 72px;
-        margin: auto;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .veiculos-logo {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: white;
-        text-decoration: none;
-        font-size: 21px;
-        font-weight: bold;
-    }
-
-    .veiculos-logo-icon {
-        width: 38px;
-        height: 38px;
-        border-radius: 10px;
-        background: #2563eb;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-    }
-
-    .veiculos-logo span {
-        color: #60a5fa;
-    }
-
-    .veiculos-nav-links {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-    }
-
-    .veiculos-nav-links a {
-        color: #cbd5e1;
-        text-decoration: none;
-        font-size: 14px;
-        transition: 0.2s;
-    }
-
-    .veiculos-nav-links a:hover {
-        color: white;
-    }
-
-    .veiculos-sair {
-        background: #2563eb;
-        color: white !important;
-        padding: 9px 15px;
-        border-radius: 8px;
-    }
-
-    .veiculos-sair:hover {
-        background: #1d4ed8;
-    }
-
-    .veiculos-main {
-        max-width: 1200px;
-        margin: auto;
-        padding: 45px 30px 70px;
-    }
-
-    .veiculos-topo {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 20px;
-        margin-bottom: 35px;
-    }
-
-    .veiculos-titulo-area h1 {
-        margin: 0 0 8px;
-        font-size: 34px;
-    }
-
-    .veiculos-titulo-area p {
-        margin: 0;
-        color: #64748b;
-        font-size: 15px;
-    }
-
-    .veiculos-adicionar {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 12px 18px;
-        background: #2563eb;
-        color: white;
-        text-decoration: none;
-        border-radius: 10px;
-        font-weight: bold;
-        font-size: 14px;
-        transition: 0.2s;
-        box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
-    }
-
-    .veiculos-adicionar:hover {
-        background: #1d4ed8;
-        transform: translateY(-2px);
-    }
-
-    .veiculos-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 22px;
-    }
-
-    .veiculo-card {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 18px;
-        padding: 24px;
-        box-shadow: 0 8px 25px rgba(15, 23, 42, 0.05);
-        transition: 0.25s;
-    }
-
-    .veiculo-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 15px 35px rgba(15, 23, 42, 0.10);
-        border-color: #bfdbfe;
-    }
-
-    .veiculo-card-topo {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-
-    .veiculo-icone {
-        width: 52px;
-        height: 52px;
-        border-radius: 14px;
-        background: #eaf2ff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 27px;
-    }
-
-    .veiculo-status {
-        background: #dcfce7;
-        color: #15803d;
-        padding: 6px 10px;
-        border-radius: 20px;
-        font-size: 11px;
-        font-weight: bold;
-    }
-
-    .veiculo-modelo {
-        margin: 0 0 8px;
-        font-size: 20px;
-    }
-
-    .veiculo-placa {
-        display: inline-block;
-        background: #0f172a;
-        color: white;
-        padding: 7px 11px;
-        border-radius: 6px;
-        font-size: 13px;
-        font-weight: bold;
-        letter-spacing: 1px;
-        margin-bottom: 18px;
-    }
-
-    .veiculo-info {
-        border-top: 1px solid #e2e8f0;
-        padding-top: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .veiculo-info-linha {
-        display: flex;
-        justify-content: space-between;
-        font-size: 14px;
-    }
-
-    .veiculo-info-linha span:first-child {
-        color: #64748b;
-    }
-
-    .veiculo-info-linha span:last-child {
-        color: #334155;
-        font-weight: 600;
-    }
-
-    .veiculo-acoes {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-    }
-
-    .veiculo-editar,
-    .veiculo-excluir {
-        flex: 1;
-        text-align: center;
-        padding: 10px;
-        border-radius: 9px;
-        text-decoration: none;
-        font-size: 13px;
-        font-weight: bold;
-        transition: 0.2s;
-    }
-
-    .veiculo-editar {
-        background: #eff6ff;
-        color: #2563eb;
-    }
-
-    .veiculo-editar:hover {
-        background: #dbeafe;
-    }
-
-    .veiculo-excluir {
-        background: #fef2f2;
-        color: #dc2626;
-    }
-
-    .veiculo-excluir:hover {
-        background: #fee2e2;
-    }
-
-    .veiculos-vazio {
-        background: white;
-        border: 1px dashed #cbd5e1;
-        border-radius: 18px;
-        padding: 60px 30px;
-        text-align: center;
-    }
-
-    .veiculos-vazio-icone {
-        font-size: 48px;
-        margin-bottom: 15px;
-    }
-
-    .veiculos-vazio h2 {
-        margin: 0 0 10px;
-        font-size: 22px;
-    }
-
-    .veiculos-vazio p {
-        margin: 0 auto 25px;
-        max-width: 450px;
-        color: #64748b;
-        line-height: 1.6;
-    }
-
-    .veiculos-voltar {
-        display: inline-block;
-        margin-top: 30px;
-        color: #64748b;
-        text-decoration: none;
-        font-size: 14px;
-    }
-
-    .veiculos-voltar:hover {
-        color: #2563eb;
-    }
-
-    @media (max-width: 900px) {
-
-        .veiculos-grid {
-            grid-template-columns: repeat(2, 1fr);
+    <style>
+        * {
+            box-sizing: border-box;
         }
 
-    }
-
-    @media (max-width: 650px) {
-
-        .veiculos-navbar {
-            padding: 0 15px;
+        :root {
+            --azul: #00aaff;
+            --azul-escuro: #008bd1;
+            --navy: #101827;
+            --fundo: #f4f7fb;
+            --texto: #172033;
+            --cinza: #667085;
+            --borda: #e5eaf1;
+            --vermelho: #dc2626;
         }
 
-        .veiculos-nav-links a:not(.veiculos-sair) {
-            display: none;
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--fundo);
+            color: var(--texto);
         }
 
-        .veiculos-main {
-            padding: 30px 18px 50px;
+        nav {
+            min-height: 70px;
+            background: var(--navy);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 15px 5%;
+            flex-wrap: wrap;
         }
 
-        .veiculos-topo {
-            flex-direction: column;
-            align-items: flex-start;
+        .logo {
+            color: white;
+            text-decoration: none;
+            font-size: 23px;
+            font-weight: 800;
+            letter-spacing: .5px;
         }
 
-        .veiculos-grid {
-            grid-template-columns: 1fr;
+        .logo-p {
+            color: var(--azul);
         }
 
-        .veiculos-adicionar {
-            width: 100%;
+        .menu {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .menu a {
+            color: #e5eaf1;
+            text-decoration: none;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: .2s;
+        }
+
+        .menu a:hover,
+        .menu a.ativo {
+            background: rgba(0, 170, 255, .14);
+            color: var(--azul);
+        }
+
+        .container {
+            width: min(1100px, 92%);
+            margin: 35px auto 50px;
+        }
+
+        .cabecalho {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 22px;
+        }
+
+        .cabecalho h1 {
+            margin: 0 0 10px;
+            font-size: 30px;
+        }
+
+        .cabecalho p {
+            margin: 0;
+            color: var(--cinza);
+            line-height: 1.6;
+        }
+
+        .painel-seletor {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 28px;
+        }
+
+        .atalho {
+            display: inline-flex;
+            align-items: center;
             justify-content: center;
+            padding: 11px 15px;
+            border: 1px solid var(--borda);
+            border-radius: 10px;
+            background: white;
+            color: var(--texto);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            transition: .2s;
         }
 
-    }
+        .atalho:hover {
+            border-color: var(--azul);
+            color: var(--azul-escuro);
+            transform: translateY(-2px);
+        }
 
-</style>
+        .atalho.atual {
+            background: #eaf8ff;
+            border-color: var(--azul);
+            color: #007bb8;
+        }
 
+        .botao {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 18px;
+            border: none;
+            border-radius: 10px;
+            background: var(--azul);
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: .2s;
+        }
 
+        .botao:hover {
+            background: var(--azul-escuro);
+            transform: translateY(-2px);
+        }
+
+        .resumo {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+            background: white;
+            border: 1px solid var(--borda);
+            border-radius: 14px;
+            padding: 18px 22px;
+            margin-bottom: 22px;
+        }
+
+        .resumo span {
+            color: var(--cinza);
+            font-size: 14px;
+        }
+
+        .resumo strong {
+            font-size: 22px;
+            color: var(--azul-escuro);
+        }
+
+        .veiculos-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 20px;
+        }
+
+        .veiculo-card {
+            background: white;
+            border: 1px solid var(--borda);
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 4px 15px rgba(16, 24, 39, .04);
+            transition: .2s;
+            min-width: 0;
+        }
+
+        .veiculo-card:hover {
+            transform: translateY(-3px);
+            border-color: #b7e8ff;
+            box-shadow: 0 10px 24px rgba(16, 24, 39, .08);
+        }
+
+        .veiculo-topo {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .veiculo-icone {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: #eaf8ff;
+            border-radius: 12px;
+            font-size: 25px;
+        }
+
+        .etiqueta {
+            padding: 6px 9px;
+            border-radius: 20px;
+            background: #eaf8ff;
+            color: #007bb8;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .veiculo-modelo {
+            margin: 0 0 12px;
+            font-size: 20px;
+            overflow-wrap: anywhere;
+        }
+
+        .veiculo-placa {
+            display: inline-block;
+            margin-bottom: 18px;
+            padding: 8px 11px;
+            border: 2px solid #d5dce6;
+            border-radius: 6px;
+            background: #f8fafc;
+            color: var(--navy);
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .veiculo-info {
+            border-top: 1px solid var(--borda);
+            padding-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .info-linha {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 14px;
+        }
+
+        .info-linha span:first-child {
+            color: var(--cinza);
+        }
+
+        .info-linha span:last-child {
+            color: var(--texto);
+            font-weight: 600;
+            text-align: right;
+            overflow-wrap: anywhere;
+        }
+
+        .acoes {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .acao {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 8px;
+            border-radius: 9px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: bold;
+            transition: .2s;
+        }
+
+        .editar {
+            background: #eaf8ff;
+            color: #007bb8;
+        }
+
+        .editar:hover {
+            background: #d6f1ff;
+        }
+
+        .excluir {
+            background: #fef2f2;
+            color: var(--vermelho);
+        }
+
+        .excluir:hover {
+            background: #fee2e2;
+        }
+
+        .vazio {
+            background: white;
+            border: 1px dashed #cbd5e1;
+            border-radius: 16px;
+            padding: 50px 22px;
+            text-align: center;
+        }
+
+        .vazio-icone {
+            font-size: 45px;
+            margin-bottom: 14px;
+        }
+
+        .vazio h2 {
+            margin: 0 0 10px;
+        }
+
+        .vazio p {
+            max-width: 450px;
+            margin: 0 auto 22px;
+            color: var(--cinza);
+            line-height: 1.6;
+        }
+
+        footer {
+            text-align: center;
+            padding: 22px;
+            color: var(--cinza);
+            font-size: 13px;
+        }
+
+        @media (max-width: 900px) {
+            .veiculos-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 650px) {
+            nav {
+                padding: 16px 4%;
+            }
+
+            .menu {
+                width: 100%;
+            }
+
+            .menu a {
+                padding: 9px;
+            }
+
+            .container {
+                margin-top: 25px;
+            }
+
+            .cabecalho h1 {
+                font-size: 26px;
+            }
+
+            .cabecalho .botao {
+                width: 100%;
+            }
+
+            .veiculos-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
-
 <body>
 
-<header class="veiculos-navbar">
-
-
-<div class="veiculos-navbar-content">
-
-    <a href="dashboard.php" class="veiculos-logo">
-
-        <div class="veiculos-logo-icon">
-            P
-        </div>
-
-        Park <span>Point</span>
-
+<nav>
+    <a href="<?= h($painel_url) ?>" class="logo">
+        <span class="logo-p">P</span>ARK POINT
     </a>
 
-    <nav class="veiculos-nav-links">
+    <div class="menu">
+        <a href="<?= h($painel_url) ?>"><?= h($painel_nome) ?></a>
+        <a href="vagas.php">Vagas</a>
 
-        <a href="dashboard.php">
-            Início
-        </a>
+        <?php if ($perfil === "admin"): ?>
+            <a href="funcionario.php">Funcionário</a>
+            <a href="cadastro-estacionamento.php">Estacionamentos</a>
+        <?php elseif ($perfil === "funcionario"): ?>
+            <a href="minhas-reservas.php">Reservas</a>
+        <?php else: ?>
+            <a href="meus-veiculos.php" class="ativo">Meus veículos</a>
+            <a href="minhas-reservas.php">Reservas</a>
+            <a href="historico.php">Histórico</a>
+        <?php endif; ?>
 
-        <a href="vagas.php">
-            Vagas
-        </a>
-
-        <a href="minhas-reservas.php">
-            Reservas
-        </a>
-
-        <a href="logout.php" class="veiculos-sair">
-            Sair
-        </a>
-
-    </nav>
-
-</div>
-
-
-</header>
-
-<main class="veiculos-main">
-
-
-<div class="veiculos-topo">
-
-    <div class="veiculos-titulo-area">
-
-        <h1>
-            Meus veículos 🚗
-        </h1>
-
-        <p>
-            Gerencie os veículos cadastrados na sua conta.
-        </p>
-
+        <a href="logout.php">Sair</a>
     </div>
+</nav>
 
-    <a
-        href="cadastrar-veiculo.php"
-        class="veiculos-adicionar"
-    >
-        + Adicionar veículo
-    </a>
+<main class="container">
 
-</div>
-
-
-<?php if (count($veiculos) > 0): ?>
-
-    <div class="veiculos-grid">
-
-        <?php foreach ($veiculos as $veiculo): ?>
-
-            <div class="veiculo-card">
-
-                <div class="veiculo-card-topo">
-
-                    <div class="veiculo-icone">
-                        🚗
-                    </div>
-
-                    <div class="veiculo-status">
-                        CADASTRADO
-                    </div>
-
-                </div>
-
-
-                <h2 class="veiculo-modelo">
-
-                    <?= htmlspecialchars($veiculo["modelo"]) ?>
-
-                </h2>
-
-
-                <div class="veiculo-placa">
-
-                    <?= htmlspecialchars($veiculo["placa"]) ?>
-
-                </div>
-
-
-                <div class="veiculo-info">
-
-                    <div class="veiculo-info-linha">
-
-                        <span>
-                            Modelo
-                        </span>
-
-                        <span>
-                            <?= htmlspecialchars($veiculo["modelo"]) ?>
-                        </span>
-
-                    </div>
-
-
-                    <div class="veiculo-info-linha">
-
-                        <span>
-                            Cor
-                        </span>
-
-                        <span>
-                            <?= htmlspecialchars($veiculo["cor"]) ?>
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="veiculo-acoes">
-
-                    <a
-                        href="editar-veiculos.php?id=<?= $veiculo["id"] ?>"
-                        class="veiculo-editar"
-                    >
-                        ✏️ Editar
-                    </a>
-
-                    <a
-                        href="excluir-veiculo.php?id=<?= $veiculo["id"] ?>"
-                        class="veiculo-excluir"
-                        onclick="return confirm('Tem certeza que deseja excluir este veículo?');"
-                    >
-                        🗑️ Excluir
-                    </a>
-
-                </div>
-
-            </div>
-
-        <?php endforeach; ?>
-
-    </div>
-
-<?php else: ?>
-
-    <div class="veiculos-vazio">
-
-        <div class="veiculos-vazio-icone">
-            🚗
+    <header class="cabecalho">
+        <div>
+            <h1>Meus veículos 🚗</h1>
+            <p>Gerencie os veículos cadastrados na sua conta.</p>
         </div>
 
-        <h2>
-            Nenhum veículo cadastrado
-        </h2>
+        <a href="cadastrar-veiculo.php" class="botao">
+            + Adicionar veículo
+        </a>
+    </header>
 
-        <p>
-            Cadastre seu primeiro veículo para poder
-            realizar reservas no Park Point.
-        </p>
-
-        <a
-            href="cadastrar-veiculo.php"
-            class="veiculos-adicionar"
-        >
-            + Cadastrar veículo
+    <div class="painel-seletor">
+        <a href="<?= h($painel_url) ?>" class="atalho">
+            ← Voltar ao painel
         </a>
 
+        <?php if ($perfil === "admin"): ?>
+            <a href="funcionario.php" class="atalho">Painel do funcionário</a>
+            <a href="dashboard.php" class="atalho">Painel do cliente</a>
+        <?php elseif ($perfil === "funcionario"): ?>
+            <a href="admin.php" class="atalho">Painel administrativo</a>
+            <a href="dashboard.php" class="atalho">Painel do cliente</a>
+        <?php endif; ?>
     </div>
 
-<?php endif; ?>
+    <section class="resumo">
+        <span>Veículos cadastrados na sua conta</span>
+        <strong><?= count($veiculos) ?></strong>
+    </section>
 
+    <?php if ($veiculos): ?>
 
-<a
-    href="dashboard.php"
-    class="veiculos-voltar"
->
-    ← Voltar para o painel
-</a>
+        <div class="veiculos-grid">
+            <?php foreach ($veiculos as $veiculo): ?>
+                <article class="veiculo-card">
 
+                    <div class="veiculo-topo">
+                        <div class="veiculo-icone">🚗</div>
+                        <span class="etiqueta">CADASTRADO</span>
+                    </div>
+
+                    <h2 class="veiculo-modelo">
+                        <?= h($veiculo["modelo"]) ?>
+                    </h2>
+
+                    <div class="veiculo-placa">
+                        <?= h($veiculo["placa"]) ?>
+                    </div>
+
+                    <div class="veiculo-info">
+                        <div class="info-linha">
+                            <span>Modelo</span>
+                            <span><?= h($veiculo["modelo"]) ?></span>
+                        </div>
+
+                        <div class="info-linha">
+                            <span>Cor</span>
+                            <span><?= h($veiculo["cor"]) ?></span>
+                        </div>
+                    </div>
+
+                    <div class="acoes">
+                        <a
+                            href="editar-veiculos.php?id=<?= (int) $veiculo["id"] ?>"
+                            class="acao editar"
+                        >✏️ Editar</a>
+
+                        <a
+                            href="excluir-veiculo.php?id=<?= (int) $veiculo["id"] ?>"
+                            class="acao excluir"
+                            onclick="return confirm('Tem certeza que deseja excluir este veículo?');"
+                        >🗑️ Excluir</a>
+                    </div>
+
+                </article>
+            <?php endforeach; ?>
+        </div>
+
+    <?php else: ?>
+
+        <section class="vazio">
+            <div class="vazio-icone">🚗</div>
+            <h2>Nenhum veículo cadastrado</h2>
+            <p>
+                Cadastre seu primeiro veículo para poder realizar
+                reservas no Park Point.
+            </p>
+            <a href="cadastrar-veiculo.php" class="botao">
+                + Cadastrar veículo
+            </a>
+        </section>
+
+    <?php endif; ?>
 
 </main>
 
-</body>
+<footer>
+    Park Point © <?= date("Y") ?> — Sistema de gerenciamento de estacionamento
+</footer>
 
+</body>
 </html>

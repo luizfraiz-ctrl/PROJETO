@@ -1,5 +1,5 @@
+```php
 <?php
-
 session_start();
 require_once "conexao.php";
 
@@ -9,12 +9,17 @@ if (!isset($_SESSION["usuario_id"])) {
 }
 
 $usuario_id = (int) $_SESSION["usuario_id"];
+$perfil = $_SESSION["perfil"] ?? "cliente";
+$nome = $_SESSION["usuario_nome"] ?? "Usuário";
 
 $historico = [];
 $erro = null;
 
-try {
+function h($valor) {
+    return htmlspecialchars((string)($valor ?? ""), ENT_QUOTES, "UTF-8");
+}
 
+try {
     $sql = "
         SELECT
             e.id,
@@ -25,795 +30,552 @@ try {
             ve.modelo,
             ve.cor
         FROM estacionamentos e
-        INNER JOIN vagas v
-            ON e.vaga_id = v.id
-        INNER JOIN veiculos ve
-            ON e.veiculo_id = ve.id
+        INNER JOIN vagas v ON e.vaga_id = v.id
+        INNER JOIN veiculos ve ON e.veiculo_id = ve.id
         WHERE ve.usuario_id = ?
           AND e.saida IS NOT NULL
-        ORDER BY e.id DESC
+        ORDER BY e.saida DESC
     ";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$usuario_id]);
-
     $historico = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
-
-    $erro = "Não foi possível carregar o histórico.";
-
+    $erro = "Não foi possível carregar o histórico. Tente novamente.";
 }
-
 ?>
 
 <!DOCTYPE html>
-
 <html lang="pt-BR">
-
 <head>
-
-
-<meta charset="UTF-8">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Histórico - Park Point</title>
-
-<style>
-
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    body {
-        font-family: Arial, Helvetica, sans-serif;
-        background: #f3f6fa;
-        color: #172033;
-        min-height: 100vh;
-    }
-
-    a {
-        text-decoration: none;
-    }
-
-
-    /* NAVBAR */
-
-    .navbar {
-        width: 100%;
-        min-height: 68px;
-        background: #111827;
-    }
-
-    .navbar-content {
-        min-height: 68px;
-        padding: 0 32px;
-
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .logo {
-        color: white;
-        font-size: 24px;
-        font-weight: 800;
-    }
-
-    .logo span {
-        color: #60a5fa;
-    }
-
-    .nav {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-    .nav a {
-        color: #dbe4ef;
-        font-size: 14px;
-        font-weight: 600;
-        padding: 10px 13px;
-        border-radius: 8px;
-        transition: 0.2s;
-    }
-
-    .nav a:hover {
-        background: #273449;
-        color: white;
-    }
-
-    .nav .sair {
-        background: #dc2626;
-        color: white;
-        margin-left: 5px;
-    }
-
-    .nav .sair:hover {
-        background: #b91c1c;
-    }
-
-
-    /* CONTEÚDO */
-
-    .main {
-        width: 100%;
-        padding: 30px;
-    }
-
-    .container {
-        width: 100%;
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-
-
-    /* VOLTAR */
-
-    .voltar {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-
-        color: #475569;
-        font-size: 14px;
-        font-weight: 700;
-
-        padding: 8px 12px 8px 7px;
-        margin-bottom: 18px;
-
-        border-radius: 9px;
-
-        transition: 0.2s;
-    }
-
-    .voltar:hover {
-        background: #e2e8f0;
-        color: #111827;
-        transform: translateX(-3px);
-    }
-
-    .seta {
-        font-size: 22px;
-    }
-
-
-    /* CABEÇALHO */
-
-    .cabecalho {
-        background: linear-gradient(
-            135deg,
-            #111827,
-            #1e3a5f
-        );
-
-        color: white;
-
-        border-radius: 20px;
-
-        padding: 32px 35px;
-
-        margin-bottom: 25px;
-
-        box-shadow:
-            0 10px 25px rgba(15, 23, 42, 0.12);
-    }
-
-    .cabecalho h1 {
-        font-size: 30px;
-        margin-bottom: 8px;
-    }
-
-    .cabecalho p {
-        color: #d7e0ec;
-        font-size: 14px;
-        line-height: 1.5;
-    }
-
-
-    /* ERRO */
-
-    .erro {
-        background: #fff1f2;
-        border: 1px solid #fecdd3;
-        color: #be123c;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 20px;
-    }
-
-
-    /* SEM HISTÓRICO */
-
-    .vazio {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 18px;
-
-        padding: 55px 25px;
-
-        text-align: center;
-
-        box-shadow:
-            0 5px 16px rgba(15, 23, 42, 0.05);
-    }
-
-    .vazio-icon {
-        font-size: 55px;
-        margin-bottom: 18px;
-    }
-
-    .vazio h2 {
-        font-size: 22px;
-        margin-bottom: 8px;
-        color: #111827;
-    }
-
-    .vazio p {
-        color: #64748b;
-        font-size: 14px;
-        margin-bottom: 22px;
-    }
-
-    .botao-vagas {
-        display: inline-block;
-        background: #2563eb;
-        color: white;
-
-        padding: 12px 20px;
-
-        border-radius: 9px;
-
-        font-size: 14px;
-        font-weight: bold;
-
-        transition: 0.2s;
-    }
-
-    .botao-vagas:hover {
-        background: #1d4ed8;
-        transform: translateY(-2px);
-    }
-
-
-    /* LISTA */
-
-    .lista {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 18px;
-    }
-
-
-    /* CARD */
-
-    .registro {
-        background: white;
-
-        border: 1px solid #e2e8f0;
-        border-radius: 18px;
-
-        padding: 24px;
-
-        box-shadow:
-            0 5px 16px rgba(15, 23, 42, 0.05);
-
-        transition: 0.2s;
-    }
-
-    .registro:hover {
-        transform: translateY(-3px);
-
-        box-shadow:
-            0 12px 27px rgba(15, 23, 42, 0.09);
-    }
-
-
-    /* TOPO */
-
-    .registro-topo {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        margin-bottom: 20px;
-    }
-
-    .vaga {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .vaga-icon {
-        width: 48px;
-        height: 48px;
-
-        border-radius: 12px;
-
-        background: #f1f5f9;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        font-size: 23px;
-    }
-
-    .vaga-texto small {
-        display: block;
-        color: #64748b;
-        font-size: 12px;
-        margin-bottom: 3px;
-    }
-
-    .vaga-texto strong {
-        color: #111827;
-        font-size: 20px;
-    }
-
-
-    /* STATUS */
-
-    .status {
-        background: #f1f5f9;
-        color: #64748b;
-
-        padding: 7px 11px;
-
-        border-radius: 20px;
-
-        font-size: 11px;
-        font-weight: 800;
-    }
-
-
-    /* DADOS */
-
-    .dados {
-        border-top: 1px solid #e2e8f0;
-        border-bottom: 1px solid #e2e8f0;
-
-        padding: 18px 0;
-
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-
-        gap: 17px;
-    }
-
-    .dado small {
-        display: block;
-
-        color: #94a3b8;
-
-        font-size: 11px;
-        font-weight: 700;
-
-        margin-bottom: 5px;
-
-        text-transform: uppercase;
-    }
-
-    .dado strong {
-        display: block;
-
-        color: #334155;
-
-        font-size: 13px;
-    }
-
-
-    /* VEÍCULO */
-
-    .veiculo {
-        display: flex;
-        align-items: center;
-
-        gap: 12px;
-
-        margin-top: 18px;
-    }
-
-    .veiculo-icon {
-        width: 42px;
-        height: 42px;
-
-        border-radius: 10px;
-
-        background: #eff6ff;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        font-size: 20px;
-    }
-
-    .veiculo-info small {
-        display: block;
-
-        color: #94a3b8;
-
-        font-size: 11px;
-
-        margin-bottom: 3px;
-    }
-
-    .veiculo-info strong {
-        display: block;
-
-        color: #334155;
-
-        font-size: 14px;
-    }
-
-
-    /* TEMPO */
-
-    .tempo {
-        margin-top: 18px;
-
-        padding: 12px 14px;
-
-        background: #f8fafc;
-
-        border-radius: 10px;
-
-        color: #64748b;
-
-        font-size: 12px;
-    }
-
-    .tempo strong {
-        color: #334155;
-    }
-
-
-    /* RESPONSIVO */
-
-    @media (max-width: 900px) {
-
-        .lista {
-            grid-template-columns: 1fr;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico | Park Point</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-    }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f7fb;
+            color: #172033;
+            min-height: 100vh;
+        }
 
+        a {
+            text-decoration: none;
+        }
 
-    @media (max-width: 700px) {
+        .navbar {
+            background: #111827;
+            width: 100%;
+        }
 
         .navbar-content {
-            padding: 14px 15px;
+            max-width: 1400px;
+            min-height: 72px;
+            margin: auto;
+            padding: 14px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
 
-            flex-direction: column;
+        .logo {
+            color: #fff;
+            font-size: 23px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
 
-            gap: 12px;
+        .logo span {
+            color: #00aaff;
         }
 
         .nav {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
             flex-wrap: wrap;
-            justify-content: center;
+            gap: 5px;
+        }
+
+        .nav a {
+            color: #dbe4ef;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            transition: 0.2s;
+        }
+
+        .nav a:hover,
+        .nav a.ativo {
+            background: #263449;
+            color: #00aaff;
+        }
+
+        .nav a.sair {
+            background: #dc2626;
+            color: #fff;
+        }
+
+        .nav a.sair:hover {
+            background: #b91c1c;
+            transform: translateY(-2px);
         }
 
         .main {
-            padding: 18px 15px 35px;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .voltar {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #475569;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 9px 12px;
+            margin-bottom: 18px;
+            border-radius: 9px;
+            transition: 0.2s;
+        }
+
+        .voltar:hover {
+            background: #e2e8f0;
+            color: #0284c7;
+            transform: translateX(-3px);
         }
 
         .cabecalho {
-            padding: 27px 23px;
+            background: linear-gradient(135deg, #111827, #1e3a5f);
+            color: #fff;
+            border-radius: 18px;
+            padding: 32px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.10);
         }
 
         .cabecalho h1 {
-            font-size: 25px;
+            font-size: 29px;
+            margin-bottom: 9px;
         }
 
-    }
+        .cabecalho p {
+            color: #d7e0ec;
+            font-size: 14px;
+            line-height: 1.6;
+        }
 
+        .resumo {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
 
-    @media (max-width: 480px) {
+        .resumo h2 {
+            font-size: 20px;
+            color: #172033;
+        }
+
+        .contador {
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 8px 13px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .erro {
+            background: #fff1f2;
+            border: 1px solid #fecdd3;
+            color: #be123c;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .vazio {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 50px 25px;
+            text-align: center;
+            box-shadow: 0 5px 16px rgba(15, 23, 42, 0.04);
+        }
+
+        .vazio-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .vazio h2 {
+            font-size: 21px;
+            margin-bottom: 9px;
+        }
+
+        .vazio p {
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 22px;
+        }
+
+        .botao {
+            display: inline-block;
+            background: #0284c7;
+            color: #fff;
+            padding: 12px 18px;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 700;
+            transition: 0.2s;
+        }
+
+        .botao:hover {
+            background: #0369a1;
+            transform: translateY(-2px);
+        }
+
+        .lista {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
 
         .registro {
-            padding: 20px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 23px;
+            box-shadow: 0 5px 16px rgba(15, 23, 42, 0.04);
+            transition: 0.2s;
+        }
+
+        .registro:hover {
+            transform: translateY(-3px);
+            border-color: #bae6fd;
+            box-shadow: 0 12px 25px rgba(15, 23, 42, 0.08);
         }
 
         .registro-topo {
-            align-items: flex-start;
-            gap: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .vaga {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .vaga-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: #e0f2fe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 23px;
+        }
+
+        .vaga-texto small,
+        .dado small,
+        .veiculo-info small {
+            display: block;
+            color: #64748b;
+            font-size: 11px;
+            margin-bottom: 5px;
+        }
+
+        .vaga-texto strong {
+            color: #111827;
+            font-size: 19px;
+        }
+
+        .status {
+            background: #dcfce7;
+            color: #166534;
+            padding: 7px 11px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 800;
         }
 
         .dados {
-            grid-template-columns: 1fr;
+            border-top: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 17px 0;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 15px;
         }
 
-    }
+        .dado strong {
+            display: block;
+            color: #334155;
+            font-size: 13px;
+            line-height: 1.5;
+        }
 
-</style>
+        .veiculo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 18px;
+        }
 
+        .veiculo-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: #eff6ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
 
+        .veiculo-info strong {
+            display: block;
+            color: #334155;
+            font-size: 14px;
+        }
+
+        .tempo {
+            margin-top: 18px;
+            padding: 12px 14px;
+            background: #f1f5f9;
+            border-radius: 10px;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .tempo strong {
+            color: #0369a1;
+        }
+
+        footer {
+            text-align: center;
+            padding: 22px 15px;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        @media (max-width: 950px) {
+            .navbar-content {
+                flex-direction: column;
+            }
+
+            .nav {
+                justify-content: center;
+            }
+
+            .lista {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .navbar-content {
+                padding: 17px 14px;
+            }
+
+            .nav a {
+                padding: 9px;
+                font-size: 12px;
+            }
+
+            .main {
+                padding: 20px 14px 30px;
+            }
+
+            .cabecalho {
+                padding: 25px 21px;
+            }
+
+            .cabecalho h1 {
+                font-size: 25px;
+            }
+
+            .registro {
+                padding: 19px;
+            }
+
+            .dados {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
 <header class="navbar">
-
-
-<div class="navbar-content">
-
-    <a href="dashboard.php" class="logo">
-        Park <span>Point</span>
-    </a>
-
-
-    <nav class="nav">
-
-        <a href="dashboard.php">
-            Início
+    <div class="navbar-content">
+        <a href="dashboard.php" class="logo">
+            <span>P</span>ARK POINT
         </a>
 
-        <a href="vagas.php">
-            Vagas
-        </a>
+        <nav class="nav">
+            <?php if ($perfil === "admin"): ?>
+                <a href="admin.php">Admin</a>
+            <?php endif; ?>
 
-        <a href="minhas-reservas.php">
-            Minhas Reservas
-        </a>
+            <?php if ($perfil === "funcionario" || $perfil === "admin"): ?>
+                <a href="funcionario.php">Funcionário</a>
+            <?php endif; ?>
 
-        <a href="historico.php">
-            Histórico
-        </a>
-
-        <a href="logout.php" class="sair">
-            Sair
-        </a>
-
-    </nav>
-
-</div>
-
-
+            <a href="dashboard.php">Início</a>
+            <a href="vagas.php">Vagas</a>
+            <a href="meus-veiculos.php">Meus veículos</a>
+            <a href="minhas-reservas.php">Minhas reservas</a>
+            <a href="historico.php" class="ativo">Histórico</a>
+            <a href="logout.php" class="sair">Sair</a>
+        </nav>
+    </div>
 </header>
 
 <main class="main">
+    <div class="container">
 
+        <a href="dashboard.php" class="voltar">← Voltar ao painel</a>
 
-<div class="container">
+        <section class="cabecalho">
+            <h1>Histórico de estacionamentos 📋</h1>
+            <p>
+                Olá, <?= h($nome) ?>! Consulte seus estacionamentos finalizados,
+                os horários de entrada e saída e os veículos utilizados.
+            </p>
+        </section>
 
+        <?php if ($erro): ?>
 
-    <a href="dashboard.php" class="voltar">
+            <div class="erro"><?= h($erro) ?></div>
 
-        <span class="seta">
-            ←
-        </span>
+        <?php elseif (empty($historico)): ?>
 
-        Voltar
+            <section class="vazio">
+                <div class="vazio-icon">📋</div>
+                <h2>Seu histórico está vazio</h2>
+                <p>
+                    Quando você finalizar um estacionamento, os registros
+                    aparecerão aqui.
+                </p>
+                <a href="vagas.php" class="botao">Encontrar uma vaga</a>
+            </section>
 
-    </a>
+        <?php else: ?>
 
-
-    <section class="cabecalho">
-
-        <h1>
-            Histórico 📋
-        </h1>
-
-        <p>
-            Consulte seus estacionamentos anteriores,
-            horários de entrada e saída e os veículos utilizados.
-        </p>
-
-    </section>
-
-
-    <?php if ($erro): ?>
-
-        <div class="erro">
-            <?= htmlspecialchars($erro) ?>
-        </div>
-
-
-    <?php elseif (empty($historico)): ?>
-
-
-        <div class="vazio">
-
-            <div class="vazio-icon">
-                📋
+            <div class="resumo">
+                <h2>Estacionamentos anteriores</h2>
+                <span class="contador">
+                    <?= count($historico) ?>
+                    <?= count($historico) === 1 ? "registro" : "registros" ?>
+                </span>
             </div>
 
-            <h2>
-                Seu histórico está vazio
-            </h2>
+            <section class="lista">
+                <?php foreach ($historico as $registro): ?>
 
-            <p>
-                Quando você finalizar um estacionamento,
-                ele aparecerá aqui.
-            </p>
-
-            <a href="vagas.php" class="botao-vagas">
-                Encontrar uma vaga
-            </a>
-
-        </div>
-
-
-    <?php else: ?>
-
-
-        <section class="lista">
-
-
-            <?php foreach ($historico as $registro): ?>
-
-
-                <?php
-
-                    $entrada = date(
-                        "d/m/Y H:i",
-                        strtotime($registro["entrada"])
-                    );
-
-                    $saida = date(
-                        "d/m/Y H:i",
-                        strtotime($registro["saida"])
-                    );
-
-                    $tempo = "";
-
+                    <?php
                     $inicio = strtotime($registro["entrada"]);
                     $fim = strtotime($registro["saida"]);
 
-                    if ($fim > $inicio) {
+                    $entrada = $inicio ? date("d/m/Y H:i", $inicio) : "Não informado";
+                    $saida = $fim ? date("d/m/Y H:i", $fim) : "Não informado";
+                    $tempo = "";
 
+                    if ($inicio && $fim && $fim >= $inicio) {
                         $segundos = $fim - $inicio;
-
-                        $horas = floor($segundos / 3600);
-
-                        $minutos = floor(
-                            ($segundos % 3600) / 60
-                        );
+                        $horas = intdiv($segundos, 3600);
+                        $minutos = intdiv($segundos % 3600, 60);
 
                         if ($horas > 0) {
-
-                            $tempo .= $horas . "h ";
-
+                            $tempo .= $horas . ($horas === 1 ? " hora " : " horas ");
                         }
 
-                        $tempo .= $minutos . "min";
+                        $tempo .= $minutos . " min";
                     }
+                    ?>
 
-                ?>
-
-
-                <article class="registro">
-
-
-                    <div class="registro-topo">
-
-
-                        <div class="vaga">
-
-                            <div class="vaga-icon">
-                                🅿️
+                    <article class="registro">
+                        <div class="registro-topo">
+                            <div class="vaga">
+                                <div class="vaga-icon">🅿️</div>
+                                <div class="vaga-texto">
+                                    <small>Vaga utilizada</small>
+                                    <strong>Nº <?= h($registro["vaga"]) ?></strong>
+                                </div>
                             </div>
 
+                            <span class="status">FINALIZADA</span>
+                        </div>
 
-                            <div class="vaga-texto">
+                        <div class="dados">
+                            <div class="dado">
+                                <small>Entrada</small>
+                                <strong><?= h($entrada) ?></strong>
+                            </div>
 
-                                <small>
-                                    Vaga utilizada
-                                </small>
+                            <div class="dado">
+                                <small>Saída</small>
+                                <strong><?= h($saida) ?></strong>
+                            </div>
+                        </div>
 
+                        <div class="veiculo">
+                            <div class="veiculo-icon">🚗</div>
+                            <div class="veiculo-info">
+                                <small>Veículo utilizado</small>
                                 <strong>
-                                    Nº <?= htmlspecialchars($registro["vaga"]) ?>
+                                    <?= h($registro["modelo"]) ?> — <?= h($registro["placa"]) ?>
                                 </strong>
-
+                                <?php if (!empty($registro["cor"])): ?>
+                                    <small>Cor: <?= h($registro["cor"]) ?></small>
+                                <?php endif; ?>
                             </div>
-
                         </div>
 
+                        <?php if ($tempo !== ""): ?>
+                            <div class="tempo">
+                                ⏱ Tempo estacionado: <strong><?= h($tempo) ?></strong>
+                            </div>
+                        <?php endif; ?>
+                    </article>
 
-                        <span class="status">
-                            FINALIZADA
-                        </span>
+                <?php endforeach; ?>
+            </section>
 
-
-                    </div>
-
-
-                    <div class="dados">
-
-
-                        <div class="dado">
-
-                            <small>
-                                Entrada
-                            </small>
-
-                            <strong>
-                                <?= htmlspecialchars($entrada) ?>
-                            </strong>
-
-                        </div>
-
-
-                        <div class="dado">
-
-                            <small>
-                                Saída
-                            </small>
-
-                            <strong>
-                                <?= htmlspecialchars($saida) ?>
-                            </strong>
-
-                        </div>
-
-
-                    </div>
-
-
-                    <div class="veiculo">
-
-
-                        <div class="veiculo-icon">
-                            🚗
-                        </div>
-
-
-                        <div class="veiculo-info">
-
-                            <small>
-                                Veículo
-                            </small>
-
-                            <strong>
-                                <?= htmlspecialchars($registro["modelo"]) ?>
-                                -
-                                <?= htmlspecialchars($registro["placa"]) ?>
-                            </strong>
-
-                        </div>
-
-
-                    </div>
-
-
-                    <?php if ($tempo !== ""): ?>
-
-                        <div class="tempo">
-
-                            ⏱️ Tempo estacionado:
-                            <strong>
-                                <?= htmlspecialchars($tempo) ?>
-                            </strong>
-
-                        </div>
-
-                    <?php endif; ?>
-
-
-                </article>
-
-
-            <?php endforeach; ?>
-
-
-        </section>
-
-
-    <?php endif; ?>
-
-
-</div>
-
-
+        <?php endif; ?>
+    </div>
 </main>
 
-</body>
+<footer>
+    © <?= date("Y") ?> Park Point — Sistema de gerenciamento de estacionamento.
+</footer>
 
+</body>
 </html>
+```

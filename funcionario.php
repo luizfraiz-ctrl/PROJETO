@@ -8,7 +8,28 @@ if (!isset($_SESSION["usuario_id"])) {
     exit;
 }
 
-$perfil = $_SESSION["perfil"] ?? "";
+// Confere o perfil atual no banco para evitar usar um perfil antigo da sessão.
+try {
+    $stmt = $pdo->prepare("SELECT nome, perfil FROM usuarios WHERE id = ? LIMIT 1");
+    $stmt->execute([(int) $_SESSION["usuario_id"]]);
+    $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$usuario) {
+        session_unset();
+        session_destroy();
+        header("Location: entrar.php");
+        exit;
+    }
+
+    $perfil = (string) $usuario["perfil"];
+    $_SESSION["perfil"] = $perfil;
+    $_SESSION["usuario_nome"] = $usuario["nome"];
+
+} catch (Throwable $e) {
+    error_log("Erro ao validar usuário do painel: " . $e->getMessage());
+    http_response_code(500);
+    exit("Não foi possível validar seu acesso. Tente novamente.");
+}
 
 if (!in_array($perfil, ["funcionario", "admin"], true)) {
     header("Location: dashboard.php");
@@ -19,20 +40,33 @@ if (empty($_SESSION["csrf_token"])) {
     $_SESSION["csrf_token"] = bin2hex(random_bytes(32));
 }
 
+function h($valor): string
+{
+    return htmlspecialchars((string) ($valor ?? ""), ENT_QUOTES, "UTF-8");
+}
+
+$nome = $_SESSION["usuario_nome"] ?? "Funcionário";
 $erro = "";
+$totalVagas = 0;
+$vagasLivres = 0;
+$vagasOcupadas = 0;
+$vagas = [];
+$veiculosEstacionados = [];
 
 try {
     $stmt = $pdo->query("
-        SELECT COUNT(*) FROM vagas WHERE status = 'livre'
+        SELECT
+            COUNT(*) AS total,
+            COALESCE(SUM(CASE WHEN status = 'livre' THEN 1 ELSE 0 END), 0) AS livres,
+            COALESCE(SUM(CASE WHEN status = 'ocupada' THEN 1 ELSE 0 END), 0) AS ocupadas
+        FROM vagas
     ");
-    $vagasLivres = (int) $stmt->fetchColumn();
 
-    $stmt = $pdo->query("
-        SELECT COUNT(*) FROM vagas WHERE status = 'ocupada'
-    ");
-    $vagasOcupadas = (int) $stmt->fetchColumn();
+    $estatisticas = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    $totalVagas = $vagasLivres + $vagasOcupadas;
+    $totalVagas = (int) ($estatisticas["total"] ?? 0);
+    $vagasLivres = (int) ($estatisticas["livres"] ?? 0);
+    $vagasOcupadas = (int) ($estatisticas["ocupadas"] ?? 0);
 
     $stmt = $pdo->query("
         SELECT
@@ -43,11 +77,12 @@ try {
             ve.modelo,
             ve.cor
         FROM estacionamentos e
-        INNER JOIN vagas v ON e.vaga_id = v.id
-        INNER JOIN veiculos ve ON e.veiculo_id = ve.id
+        INNER JOIN vagas v ON v.id = e.vaga_id
+        INNER JOIN veiculos ve ON ve.id = e.veiculo_id
         WHERE e.saida IS NULL
         ORDER BY e.entrada DESC
     ");
+
     $veiculosEstacionados = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $stmt = $pdo->query("
@@ -55,248 +90,386 @@ try {
         FROM vagas
         ORDER BY numero
     ");
+
     $vagas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (Throwable $e) {
-    error_log("Erro no painel Park Point: " . $e->getMessage());
-    $erro = "Não foi possível carregar os dados. Confira o banco de dados.";
-    $vagasLivres = 0;
-    $vagasOcupadas = 0;
-    $totalVagas = 0;
-    $veiculosEstacionados = [];
-    $vagas = [];
-}
-
-function h($valor): string
-{
-    return htmlspecialchars((string) ($valor ?? ""), ENT_QUOTES, "UTF-8");
+    error_log("Erro no painel do funcionário: " . $e->getMessage());
+    $erro = "Não foi possível carregar os dados. Confira a conexão e as tabelas do banco.";
 }
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Painel do Funcionário | Park Point</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do funcionário | Park Point</title>
 
-<style>
-* { box-sizing: border-box; }
+    <style>
+        * { box-sizing: border-box; }
 
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f4f7fb;
-    color: #1f2937;
-}
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f7fb;
+            color: #172033;
+        }
 
-header {
-    background: #fff;
-    padding: 18px 5%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 16px;
-    box-shadow: 0 2px 12px #0000000d;
-}
+        nav {
+            min-height: 72px;
+            padding: 16px 5%;
+            background: #101827;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
 
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #172554;
-    font-size: 22px;
-    font-weight: bold;
-    text-decoration: none;
-}
+        .logo {
+            color: #fff;
+            text-decoration: none;
+            font-size: 23px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
 
-.logo-p {
-    display: inline-flex;
-    width: 40px;
-    height: 40px;
-    justify-content: center;
-    align-items: center;
-    border-radius: 10px;
-    background: #2563eb;
-    color: white;
-    font-size: 24px;
-}
+        .logo-p { color: #00aaff; }
 
-.logo-point { color: #2563eb; }
+        .menu {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
 
-nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    align-items: center;
-}
+        .menu a {
+            color: #e5e7eb;
+            text-decoration: none;
+            font-size: 14px;
+            transition: .2s;
+        }
 
-nav a {
-    text-decoration: none;
-    color: #374151;
-    font-size: 14px;
-    font-weight: bold;
-}
+        .menu a:hover,
+        .menu a.ativo { color: #00aaff; }
 
-nav a:hover { color: #2563eb; }
+        .menu a.sair { color: #ff8585; }
+        .menu a.sair:hover { color: #ff3b3b; }
 
-nav .sair {
-    background: #2563eb;
-    color: white;
-    padding: 10px 15px;
-    border-radius: 8px;
-}
+        .container {
+            max-width: 1150px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
 
-main {
-    width: 90%;
-    max-width: 1200px;
-    margin: 35px auto;
-}
+        .cabecalho { margin-bottom: 28px; }
 
-h1 { color: #172554; margin-bottom: 8px; }
+        .cabecalho h1 {
+            margin: 0 0 8px;
+            font-size: 30px;
+        }
 
-.subtitulo { color: #64748b; margin-bottom: 25px; }
+        .cabecalho p {
+            margin: 0;
+            color: #667085;
+            line-height: 1.6;
+        }
 
-.alerta {
-    padding: 14px;
-    margin: 20px 0;
-    border-radius: 8px;
-    background: #fff7ed;
-    color: #9a3412;
-}
+        .identificacao {
+            display: inline-block;
+            margin-top: 14px;
+            padding: 7px 11px;
+            border-radius: 20px;
+            background: #dff5ff;
+            color: #0077a8;
+            font-size: 12px;
+            font-weight: bold;
+        }
 
-.estatisticas {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 18px;
-    margin: 25px 0;
-}
+        .secao-titulo {
+            margin: 30px 0 15px;
+            font-size: 20px;
+        }
 
-.cartao, .secao {
-    background: white;
-    border-radius: 12px;
-    padding: 22px;
-    box-shadow: 0 4px 15px #0f172a0a;
-}
+        .paineis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
 
-.cartao p { color: #64748b; margin-top: 0; }
-.cartao h2 { font-size: 30px; margin-bottom: 0; color: #172554; }
-.livres h2 { color: #16a34a; }
-.ocupadas h2 { color: #dc2626; }
+        .painel-link {
+            display: block;
+            padding: 21px;
+            background: #fff;
+            color: #172033;
+            text-decoration: none;
+            border: 1px solid #e5eaf1;
+            border-radius: 14px;
+            box-shadow: 0 4px 16px rgba(0,0,0,.04);
+            transition: .2s;
+        }
 
-.secao { margin-bottom: 25px; }
-.secao h2 { color: #172554; margin-top: 0; }
+        .painel-link:hover {
+            border-color: #00aaff;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 22px rgba(0,170,255,.12);
+        }
 
-.grade-vagas {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-    gap: 12px;
-}
+        .painel-link.atual {
+            border: 2px solid #00aaff;
+            background: #f0faff;
+        }
 
-.vaga {
-    text-align: center;
-    padding: 15px 8px;
-    border-radius: 9px;
-    border: 1px solid;
-}
+        .painel-icone {
+            display: block;
+            font-size: 26px;
+            margin-bottom: 12px;
+        }
 
-.vaga strong { display: block; margin-bottom: 7px; }
-.vaga span { font-size: 12px; font-weight: bold; }
+        .painel-link strong {
+            display: block;
+            margin-bottom: 8px;
+        }
 
-.vaga.livre {
-    background: #f0fdf4;
-    border-color: #bbf7d0;
-    color: #15803d;
-}
+        .painel-link p {
+            margin: 0;
+            color: #667085;
+            font-size: 13px;
+            line-height: 1.5;
+        }
 
-.vaga.ocupada {
-    background: #fef2f2;
-    border-color: #fecaca;
-    color: #b91c1c;
-}
+        .marcador {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 5px 9px;
+            border-radius: 20px;
+            background: #dff5ff;
+            color: #0077a8;
+            font-size: 11px;
+            font-weight: bold;
+        }
 
-.tabela-container { overflow-x: auto; }
+        .estatisticas {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
 
-table {
-    width: 100%;
-    min-width: 700px;
-    border-collapse: collapse;
-}
+        .cartao {
+            padding: 23px;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 4px 16px rgba(0,0,0,.05);
+        }
 
-th, td {
-    padding: 14px 10px;
-    border-bottom: 1px solid #e5e7eb;
-    text-align: left;
-    font-size: 14px;
-}
+        .cartao p {
+            color: #667085;
+            font-size: 14px;
+            margin: 0;
+        }
 
-th {
-    color: #64748b;
-    background: #f8fafc;
-    font-size: 12px;
-    text-transform: uppercase;
-}
+        .cartao h2 {
+            color: #009fe3;
+            font-size: 31px;
+            margin: 10px 0 0;
+        }
 
-.form-saida { margin: 0; }
+        .cartao.livres h2 { color: #15803d; }
+        .cartao.ocupadas h2 { color: #b91c1c; }
 
-.btn-saida {
-    display: inline-block;
-    padding: 11px 14px;
-    border: 0;
-    border-radius: 7px;
-    background: #2563eb;
-    color: #fff;
-    font-weight: bold;
-    font-size: 13px;
-    cursor: pointer;
-    white-space: nowrap;
-}
+        .secao {
+            padding: 25px;
+            margin-bottom: 25px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,.05);
+        }
 
-.btn-saida:hover { background: #1d4ed8; }
+        .secao h2 {
+            margin-top: 0;
+            font-size: 20px;
+        }
 
-.vazio {
-    padding: 20px 0;
-    text-align: center;
-    color: #64748b;
-}
+        .grade-vagas {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+        }
 
-footer {
-    text-align: center;
-    color: #94a3b8;
-    padding: 25px;
-}
+        .vaga {
+            text-align: center;
+            padding: 16px 8px;
+            border-radius: 10px;
+            border: 1px solid;
+        }
 
-@media (max-width: 700px) {
-    header { padding: 16px 5%; }
-    main { width: 92%; margin-top: 25px; }
-    .estatisticas { grid-template-columns: 1fr; }
-}
-</style>
+        .vaga strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .vaga span {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .vaga.livre {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #15803d;
+        }
+
+        .vaga.ocupada {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #b91c1c;
+        }
+
+        .tabela-container { overflow-x: auto; }
+
+        table {
+            width: 100%;
+            min-width: 700px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 14px 10px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            color: #667085;
+            background: #f8fafc;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .btn-saida {
+            padding: 11px 14px;
+            border: none;
+            border-radius: 9px;
+            background: #00aaff;
+            color: #fff;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: .2s;
+        }
+
+        .btn-saida:hover { background: #008dcc; }
+
+        .vazio {
+            padding: 22px 0;
+            text-align: center;
+            color: #667085;
+            line-height: 1.6;
+        }
+
+        .alerta {
+            padding: 14px;
+            margin-bottom: 22px;
+            border-radius: 10px;
+            background: #fff7ed;
+            color: #9a3412;
+        }
+
+        .botao {
+            display: inline-block;
+            padding: 12px 17px;
+            border-radius: 9px;
+            background: #00aaff;
+            color: #fff;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            transition: .2s;
+        }
+
+        .botao:hover {
+            background: #008dcc;
+            transform: translateY(-2px);
+        }
+
+        footer {
+            padding: 22px;
+            text-align: center;
+            color: #667085;
+            font-size: 13px;
+        }
+
+        @media (max-width: 850px) {
+            nav {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 650px) {
+            .estatisticas { grid-template-columns: 1fr; }
+            .container { margin-top: 25px; }
+            .secao { padding: 19px; }
+            .cabecalho h1 { font-size: 25px; }
+        }
+    </style>
 </head>
-
 <body>
-<header>
+
+<nav>
     <a href="funcionario.php" class="logo">
-        <span class="logo-p">P</span>
-        <span>Park <span class="logo-point">Point</span></span>
+        <span class="logo-p">P</span>ARK POINT
     </a>
 
-    <nav>
-        <a href="funcionario.php">Painel</a>
+    <div class="menu">
+        <a href="funcionario.php" class="ativo">Painel do funcionário</a>
         <a href="vagas.php">Vagas</a>
 
         <?php if ($perfil === "admin"): ?>
             <a href="admin.php">Administração</a>
         <?php endif; ?>
 
-        <a href="dashboard.php">Minha conta</a>
         <a href="logout.php" class="sair">Sair</a>
-    </nav>
-</header>
+    </div>
+</nav>
 
-<main>
-    <h1>Painel do Funcionário</h1>
-    <p class="subtitulo">Gerencie as vagas e registre a entrada e saída dos veículos.</p>
+<main class="container">
+    <header class="cabecalho">
+        <h1>Painel do funcionário</h1>
+        <p>Olá, <?= h($nome) ?>! Gerencie as vagas e acompanhe entradas e saídas dos veículos.</p>
+        <span class="identificacao">
+            Acesso: <?= $perfil === "admin" ? "Administrador" : "Funcionário" ?>
+        </span>
+    </header>
+
+    <h2 class="secao-titulo">Acesso rápido</h2>
+
+    <div class="paineis">
+        <a href="funcionario.php" class="painel-link atual">
+            <span class="painel-icone">🅿️</span>
+            <strong>Painel do funcionário</strong>
+            <p>Consulte as vagas e registre a saída dos veículos.</p>
+            <span class="marcador">Você está aqui</span>
+        </a>
+
+        <a href="vagas.php" class="painel-link">
+            <span class="painel-icone">🚗</span>
+            <strong>Consultar vagas</strong>
+            <p>Veja a situação atual das vagas do estacionamento.</p>
+        </a>
+
+        <?php if ($perfil === "admin"): ?>
+            <a href="admin.php" class="painel-link">
+                <span class="painel-icone">⚙️</span>
+                <strong>Painel administrativo</strong>
+                <p>Acesse as ferramentas de administração.</p>
+            </a>
+        <?php endif; ?>
+    </div>
 
     <?php if ($erro !== ""): ?>
         <div class="alerta"><?= h($erro) ?></div>
@@ -327,9 +500,10 @@ footer {
         <?php else: ?>
             <div class="grade-vagas">
                 <?php foreach ($vagas as $vaga): ?>
-                    <div class="vaga <?= $vaga["status"] === "ocupada" ? "ocupada" : "livre" ?>">
+                    <?php $ocupada = $vaga["status"] === "ocupada"; ?>
+                    <div class="vaga <?= $ocupada ? "ocupada" : "livre" ?>">
                         <strong>Vaga <?= h($vaga["numero"]) ?></strong>
-                        <span><?= $vaga["status"] === "ocupada" ? "OCUPADA" : "LIVRE" ?></span>
+                        <span><?= $ocupada ? "OCUPADA" : "LIVRE" ?></span>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -340,10 +514,7 @@ footer {
         <h2>Veículos estacionados</h2>
 
         <?php if (empty($veiculosEstacionados)): ?>
-            <p class="vazio">
-                Não há veículos estacionados no momento.
-                Para registrar uma saída, primeiro precisa existir um registro de entrada ativo.
-            </p>
+            <p class="vazio">Não há veículos estacionados no momento.</p>
         <?php else: ?>
             <div class="tabela-container">
                 <table>
@@ -358,36 +529,31 @@ footer {
                         </tr>
                     </thead>
                     <tbody>
-                    <?php foreach ($veiculosEstacionados as $veiculo): ?>
-                        <tr>
-                            <td><?= h($veiculo["placa"]) ?></td>
-                            <td><?= h($veiculo["modelo"]) ?></td>
-                            <td><?= h($veiculo["cor"]) ?></td>
-                            <td><?= h($veiculo["vaga"]) ?></td>
-                            <td>
-                                <?php
-                                $dataEntrada = strtotime($veiculo["entrada"]);
-                                echo $dataEntrada
-                                    ? date("d/m/Y H:i", $dataEntrada)
-                                    : h($veiculo["entrada"]);
-                                ?>
-                            </td>
-                            <td>
-                                <form
-                                    class="form-saida"
-                                    method="POST"
-                                    action="registrar-saida.php"
-                                    onsubmit="return confirm('Deseja registrar a saída deste veículo?');"
-                                >
-                                    <input type="hidden" name="id" value="<?= (int) $veiculo["id"] ?>">
-                                    <input type="hidden" name="csrf_token" value="<?= h($_SESSION["csrf_token"]) ?>">
-                                    <button class="btn-saida" type="submit">
-                                        Registrar saída
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
+                        <?php foreach ($veiculosEstacionados as $veiculo): ?>
+                            <tr>
+                                <td><?= h($veiculo["placa"]) ?></td>
+                                <td><?= h($veiculo["modelo"]) ?></td>
+                                <td><?= h($veiculo["cor"]) ?></td>
+                                <td><?= h($veiculo["vaga"]) ?></td>
+                                <td>
+                                    <?php
+                                    $timestamp = strtotime($veiculo["entrada"] ?? "");
+                                    echo $timestamp
+                                        ? date("d/m/Y H:i", $timestamp)
+                                        : h($veiculo["entrada"]);
+                                    ?>
+                                </td>
+                                <td>
+                                    <form method="POST"
+                                          action="registrar-saida.php"
+                                          onsubmit="return confirm('Deseja registrar a saída deste veículo?');">
+                                        <input type="hidden" name="id" value="<?= (int) $veiculo["id"] ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= h($_SESSION["csrf_token"]) ?>">
+                                        <button class="btn-saida" type="submit">Registrar saída</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
@@ -398,6 +564,7 @@ footer {
 <footer>
     Park Point &copy; <?= date("Y") ?> — Sistema de gerenciamento de estacionamento
 </footer>
+
 </body>
 </html>
 ```
